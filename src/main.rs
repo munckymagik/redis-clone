@@ -49,43 +49,44 @@ fn handle_client(mut stream: TcpStream) -> Result<()> {
 
     println!("    {}", request_header);
 
-    if request_header.type_sym == b'*' {
-        let mut req_array: Vec<(Header, String)> = Vec::new();
+    if request_header.type_sym != b'*' {
+        eprintln!("request is not an array");
+        stream.write_all(b"-Parser error\r\n")?;
+        return Ok(());
+    }
 
-        for _ in 0..request_header.len {
-            let mut elem_header_buf: Vec<u8> = Vec::new();
+    let mut req_array: Vec<(Header, String)> = Vec::new();
 
-            if let Err(msg) = read_line(&mut reader, &mut elem_header_buf) {
-                eprintln!("{} while reading elem header line", msg);
+    for _ in 0..request_header.len {
+        let mut elem_header_buf: Vec<u8> = Vec::new();
+
+        if let Err(msg) = read_line(&mut reader, &mut elem_header_buf) {
+            eprintln!("{} while reading elem header line", msg);
+            stream.write_all(b"-Parser error\r\n")?;
+            return Ok(());
+        }
+
+        let elem_resp_header = match parse_header(&elem_header_buf) {
+            Ok(header) => header,
+            Err(msg) => {
+                eprintln!("{} from elem header string {:?}", msg, elem_header_buf);
                 stream.write_all(b"-Parser error\r\n")?;
                 return Ok(());
             }
+        };
 
-            let elem_resp_header = match parse_header(&elem_header_buf) {
-                Ok(header) => header,
-                Err(msg) => {
-                    eprintln!("{} from elem header string {:?}", msg, elem_header_buf);
-                    stream.write_all(b"-Parser error\r\n")?;
-                    return Ok(());
-                }
-            };
+        println!("    {}", elem_resp_header);
 
-            println!("    {}", elem_resp_header);
+        let mut elem_value_buf = vec![0; elem_resp_header.len + 2];
+        reader.read_exact(&mut elem_value_buf)?;
+        let elem_value_str = std::str::from_utf8(&elem_value_buf[..elem_resp_header.len])?;
+        println!("    value({:?})", elem_value_str);
+        req_array.push((elem_resp_header, elem_value_str.to_owned()));
+    }
 
-            let mut elem_value_buf = vec![0; elem_resp_header.len + 2];
-            reader.read_exact(&mut elem_value_buf)?;
-            let elem_value_str = std::str::from_utf8(&elem_value_buf[..elem_resp_header.len])?;
-            println!("    value({:?})", elem_value_str);
-            req_array.push((elem_resp_header, elem_value_str.to_owned()));
-        }
-
-        println!("    \"{:?}\"", request_header);
-        for pair in req_array {
-            println!("      \"{:?}\"", pair);
-        }
-    } else {
-        stream.write_all(b"-Sorry I did not understand\r\n")?;
-        return Ok(());
+    println!("    \"{:?}\"", request_header);
+    for pair in req_array {
+        println!("      \"{:?}\"", pair);
     }
 
     stream.write_all(b"+OK\r\n")?;
