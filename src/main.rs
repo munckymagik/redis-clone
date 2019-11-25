@@ -69,19 +69,27 @@ fn handle_client(mut stream: TcpStream) -> Result<()> {
         let elem_resp_header = match parse_header(&elem_header_buf) {
             Ok(header) => header,
             Err(msg) => {
-                eprintln!("{} from elem header string {:?}", msg, elem_header_buf);
+                eprintln!(
+                    "{} while reading elem header string {:?}",
+                    msg, elem_header_buf
+                );
                 stream.write_all(b"-Parser error\r\n")?;
                 return Ok(());
             }
         };
-
         println!("    {}", elem_resp_header);
 
-        let mut elem_value_buf = vec![0; elem_resp_header.len + 2];
-        reader.read_exact(&mut elem_value_buf)?;
-        let elem_value_str = std::str::from_utf8(&elem_value_buf[..elem_resp_header.len])?;
+        let elem_value_str = match read_bulk_string(&mut reader, &elem_resp_header) {
+            Ok(value) => value,
+            Err(msg) => {
+                eprintln!("{} while reading elem value string", msg);
+                stream.write_all(b"-Parser error\r\n")?;
+                return Ok(());
+            }
+        };
         println!("    value({:?})", elem_value_str);
-        req_array.push((elem_resp_header, elem_value_str.to_owned()));
+
+        req_array.push((elem_resp_header, elem_value_str));
     }
 
     println!("    \"{:?}\"", request_header);
@@ -105,6 +113,14 @@ fn read_line(reader: &mut impl BufRead, buffer: &mut Vec<u8>) -> Result<()> {
     debug_assert_eq!(tail.collect::<Vec<u8>>(), b"\r\n");
 
     Ok(())
+}
+
+fn read_bulk_string(reader: &mut impl Read, header: &Header) -> Result<String> {
+    let mut buffer = vec![0; header.len + 2];
+    reader.read_exact(&mut buffer)?;
+    let value_str = std::str::from_utf8(&buffer[..header.len])?;
+
+    Ok(value_str.to_owned())
 }
 
 fn parse_header(line: &[u8]) -> Result<Header> {
