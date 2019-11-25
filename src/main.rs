@@ -30,44 +30,47 @@ impl fmt::Display for Header {
 
 fn handle_client(mut stream: TcpStream) -> Result<()> {
     let mut reader = BufReader::new(&stream);
-    let mut buffer: Vec<u8> = Vec::new();
+    let mut request_header_buf = vec![];
 
-    let num_bytes = reader.read_until(b'\n', &mut buffer)?;
-    println!("    buffer({:?})", buffer);
-    // TODO what if less than 2 bytes?
-    let line: &[u8] = &buffer[..num_bytes - 2];
+    if let Err(msg) = read_line(&mut reader, &mut request_header_buf) {
+        eprintln!("{} while parsing line", msg);
+        stream.write_all(b"-Parser error\r\n")?;
+        return Ok(());
+    }
 
-    println!("    line({:?})", line);
-    let resp_header = match parse_resp_header(line) {
+    let request_header = match parse_header(&request_header_buf) {
         Ok(header) => header,
         Err(msg) => {
-            eprintln!("{} from header str {:?}", msg, line);
+            eprintln!("{} from header str {:?}", msg, request_header_buf);
             stream.write_all(b"-Parser error\r\n")?;
             return Ok(());
         }
     };
 
-    println!("    {}", resp_header);
+    println!("    {}", request_header);
 
-    if resp_header.type_sym == b'*' {
+    if request_header.type_sym == b'*' {
         let mut req_array: Vec<(Header, String)> = Vec::new();
 
-        for _ in 0..resp_header.len {
+        for _ in 0..request_header.len {
             let mut elem_header_buf: Vec<u8> = Vec::new();
-            let num_bytes = reader.read_until(b'\n', &mut elem_header_buf)?;
-            // TODO what if less than 2 bytes?
-            let elem_header_line: &[u8] = &elem_header_buf[..num_bytes - 2];
 
-            let elem_resp_header = match parse_resp_header(elem_header_line) {
+            if let Err(msg) = read_line(&mut reader, &mut elem_header_buf) {
+                eprintln!("{} while reading elem header line", msg);
+                stream.write_all(b"-Parser error\r\n")?;
+                return Ok(());
+            }
+
+            let elem_resp_header = match parse_header(&elem_header_buf) {
                 Ok(header) => header,
                 Err(msg) => {
-                    eprintln!("{} from sub-header string {:?}", msg, elem_header_line);
+                    eprintln!("{} from elem header string {:?}", msg, elem_header_buf);
                     stream.write_all(b"-Parser error\r\n")?;
                     return Ok(());
                 }
             };
 
-            println!("    {}", resp_header);
+            println!("    {}", elem_resp_header);
 
             let mut elem_value_buf = vec![0; elem_resp_header.len + 2];
             reader.read_exact(&mut elem_value_buf)?;
@@ -76,7 +79,7 @@ fn handle_client(mut stream: TcpStream) -> Result<()> {
             req_array.push((elem_resp_header, elem_value_str.to_owned()));
         }
 
-        println!("    \"{:?}\"", resp_header);
+        println!("    \"{:?}\"", request_header);
         for pair in req_array {
             println!("      \"{:?}\"", pair);
         }
@@ -91,7 +94,19 @@ fn handle_client(mut stream: TcpStream) -> Result<()> {
     Ok(())
 }
 
-fn parse_resp_header(line: &[u8]) -> Result<Header> {
+fn read_line(reader: &mut impl BufRead, buffer: &mut Vec<u8>) -> Result<()> {
+    let num_bytes = reader.read_until(b'\n', buffer)?;
+    if num_bytes < 2 {
+        return Err("line too short".into());
+    }
+
+    let tail = buffer.drain((num_bytes - 2)..num_bytes);
+    debug_assert_eq!(tail.collect::<Vec<u8>>(), b"\r\n");
+
+    Ok(())
+}
+
+fn parse_header(line: &[u8]) -> Result<Header> {
     let (&type_sym, len_str) = line
         .split_first()
         .ok_or_else(|| BoxedError::from("Error parsing resp header structure"))?;
