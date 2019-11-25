@@ -1,3 +1,4 @@
+use std::fmt;
 use std::io::{BufRead, BufReader, Read, Write};
 use std::net::{TcpListener, TcpStream};
 
@@ -13,6 +14,18 @@ fn main() -> Result<()> {
         handle_client(stream?)?;
     }
     Ok(())
+}
+
+#[derive(Debug)]
+struct Header {
+    type_sym: u8,
+    len: usize,
+}
+
+impl fmt::Display for Header {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "header({}, {:?})", char::from(self.type_sym), self.len)
+    }
 }
 
 fn handle_client(mut stream: TcpStream) -> Result<()> {
@@ -34,16 +47,12 @@ fn handle_client(mut stream: TcpStream) -> Result<()> {
         }
     };
 
-    println!(
-        "    type({}, {:?})",
-        char::from(resp_header.0),
-        resp_header.1
-    );
+    println!("    {}", resp_header);
 
-    if resp_header.0 == b'*' {
-        let mut req_array: Vec<((u8, usize), String)> = Vec::new();
+    if resp_header.type_sym == b'*' {
+        let mut req_array: Vec<(Header, String)> = Vec::new();
 
-        for _ in 0..resp_header.1 {
+        for _ in 0..resp_header.len {
             let mut elem_header_buf: Vec<u8> = Vec::new();
             let num_bytes = reader.read_until(b'\n', &mut elem_header_buf)?;
             // TODO what if less than 2 bytes?
@@ -58,15 +67,11 @@ fn handle_client(mut stream: TcpStream) -> Result<()> {
                 }
             };
 
-            println!(
-                "    type({}, {:?})",
-                char::from(elem_resp_header.0),
-                elem_resp_header.1
-            );
+            println!("    {}", resp_header);
 
-            let mut elem_value_buf = vec![0; elem_resp_header.1 + 2];
+            let mut elem_value_buf = vec![0; elem_resp_header.len + 2];
             reader.read_exact(&mut elem_value_buf)?;
-            let elem_value_str = std::str::from_utf8(&elem_value_buf[..elem_resp_header.1])?;
+            let elem_value_str = std::str::from_utf8(&elem_value_buf[..elem_resp_header.len])?;
             println!("    value({:?})", elem_value_str);
             req_array.push((elem_resp_header, elem_value_str.to_owned()));
         }
@@ -86,8 +91,8 @@ fn handle_client(mut stream: TcpStream) -> Result<()> {
     Ok(())
 }
 
-fn parse_resp_header(line: &[u8]) -> Result<(u8, usize)> {
-    let (resp_type_sym, len_str) = line
+fn parse_resp_header(line: &[u8]) -> Result<Header> {
+    let (&type_sym, len_str) = line
         .split_first()
         .ok_or_else(|| BoxedError::from("Error parsing resp header structure"))?;
     let len_str = std::str::from_utf8(len_str)?;
@@ -96,5 +101,5 @@ fn parse_resp_header(line: &[u8]) -> Result<(u8, usize)> {
         BoxedError::from(msg)
     })?;
 
-    Ok((*resp_type_sym, len))
+    Ok(Header { type_sym, len })
 }
