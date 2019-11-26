@@ -1,10 +1,9 @@
 use std::fmt;
 use std::io::{BufRead, BufReader, Read, Write};
 use std::net::{TcpListener, TcpStream};
-use std::error;
 
-type BoxedError = Box<dyn error::Error>;
-type Result<T> = std::result::Result<T, BoxedError>;
+mod errors;
+use errors::{Result, ServerError};
 
 fn main() -> Result<()> {
     let listener = TcpListener::bind("127.0.0.1:8080")?;
@@ -44,7 +43,7 @@ fn handle_client(stream: TcpStream) -> Result<()> {
                     out_stream.write_all(b"-Parser error\r\n")?;
                 }
                 break;
-            },
+            }
         };
 
         for pair in request_vec {
@@ -144,11 +143,11 @@ fn read_bulk_string(reader: &mut impl Read, header: &Header) -> Result<String> {
 fn parse_header(line: &[u8]) -> Result<Header> {
     let (&type_sym, len_str) = line
         .split_first()
-        .ok_or_else(|| BoxedError::from("Error parsing resp header structure"))?;
+        .ok_or_else(|| ServerError::from("Error parsing resp header structure"))?;
     let len_str = std::str::from_utf8(len_str)?;
     let len: usize = len_str.parse().map_err(|e| {
         let msg = format!("{} while parsing {:?}", e, len_str);
-        BoxedError::from(msg)
+        ServerError::from(msg)
     })?;
 
     Ok(Header { type_sym, len })
