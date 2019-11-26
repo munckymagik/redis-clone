@@ -5,6 +5,7 @@ pub type Result<T> = std::result::Result<T, ServerError>;
 
 #[derive(Debug)]
 pub enum ServerError {
+    EmptyRead,
     Message(String),
     BoxedError(BoxedError),
 }
@@ -14,6 +15,7 @@ impl error::Error for ServerError {}
 impl fmt::Display for ServerError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
+            Self::EmptyRead => write!(f, "EmptyRead"),
             Self::Message(msg) => write!(f, "{}", msg),
             Self::BoxedError(other) => write!(f, "{}", other),
         }

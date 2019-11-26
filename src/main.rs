@@ -35,13 +35,11 @@ fn handle_client(stream: TcpStream) -> Result<()> {
     loop {
         let request_vec = match read_array(&mut reader) {
             Ok(value) => value,
+            Err(ServerError::EmptyRead) => break,
             Err(err) => {
                 let msg = err.to_string();
-                // HACK replace with proper custom error type
-                if !msg.starts_with("empty") {
-                    eprintln!("{}", msg);
-                    out_stream.write_all(b"-Parser error\r\n")?;
-                }
+                eprintln!("{}", msg);
+                out_stream.write_all(b"-Parser error\r\n")?;
                 break;
             }
         };
@@ -121,7 +119,7 @@ fn read_line(reader: &mut impl BufRead, buffer: &mut Vec<u8>) -> Result<()> {
     let num_bytes = reader.read_until(b'\n', buffer)?;
 
     if num_bytes == 0 {
-        return Err("empty".into());
+        return Err(ServerError::EmptyRead);
     } else if num_bytes < 2 {
         return Err("line too short".into());
     }
