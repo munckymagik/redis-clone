@@ -17,7 +17,7 @@ impl fmt::Display for Header {
     }
 }
 
-pub fn read_array(reader: &mut impl BufRead) -> Result<Vec<(Header, String)>> {
+pub fn read_array_of_bulkstrings(reader: &mut impl BufRead) -> Result<Vec<(Header, String)>> {
     let mut request_header_buf = vec![];
 
     if let Err(msg) = read_line(reader, &mut request_header_buf) {
