@@ -94,7 +94,7 @@ fn read_header(stream: &mut impl BufRead) -> Result<(RSym, String)> {
 
 fn read_line(stream: &mut impl BufRead, buffer: &mut Vec<u8>) -> Result<()> {
     let limit = MAX_LINE_LENGTH.try_into().unwrap();
-    let num_bytes = stream.by_ref().take(limit).read_until(LF, buffer)?;
+    let num_bytes = stream.take(limit).read_until(LF, buffer)?;
 
     // If we got nothing then we can assume the connection has closed
     if num_bytes == 0 {
