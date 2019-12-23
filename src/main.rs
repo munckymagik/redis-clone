@@ -1,11 +1,10 @@
 use std::io::{BufReader, Write};
 use std::net::{TcpListener, TcpStream};
 
-mod errors;
-use errors::{Result, ServerError};
-
-mod protocol;
-use protocol::read_array_of_bulkstrings;
+use redis_clone::{
+    errors::{ProtoError, Result},
+    protocol,
+};
 
 fn main() -> Result<()> {
     let listener = TcpListener::bind("127.0.0.1:8080")?;
@@ -24,9 +23,9 @@ fn handle_client(stream: TcpStream) -> Result<()> {
 
     loop {
         // Clients send commands as a RESP Array of Bulk Strings
-        let request_vec = match read_array_of_bulkstrings(&mut reader) {
+        let command = match protocol::decode(&mut reader) {
             Ok(value) => value,
-            Err(ServerError::EmptyRead) => break,
+            Err(ProtoError::ConnectionClosed) => break,
             Err(err) => {
                 let msg = err.to_string();
                 eprintln!("{}", msg);
@@ -35,9 +34,7 @@ fn handle_client(stream: TcpStream) -> Result<()> {
             }
         };
 
-        for pair in request_vec {
-            println!("  \"{:?}\"", pair);
-        }
+        println!("Command: {:?}", command);
 
         out_stream.write_all(b"+OK\r\n")?;
     }
