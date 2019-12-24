@@ -2,9 +2,7 @@ use std::collections::HashMap;
 use std::io::{BufReader, Write};
 use std::net::{TcpListener, TcpStream};
 
-use redis_clone::{
-    protocol::{self, RespVal, RespError, RespResult},
-};
+use redis_clone::protocol::{self, RespError, RespResult, RespVal};
 
 fn main() -> RespResult<()> {
     let mut db: HashMap<String, String> = HashMap::new();
