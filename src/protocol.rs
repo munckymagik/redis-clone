@@ -13,17 +13,17 @@ const LF: u8 = b'\n';
 const CRLF: &[u8] = b"\r\n";
 
 #[derive(Debug, PartialEq, Eq)]
-pub enum RObj {
+pub enum RespVal {
     SimpleString(String),
     Error(String),
     Integer(i64),
     BulkString(Option<String>),
-    Array(Option<Vec<RObj>>),
+    Array(Option<Vec<RespVal>>),
 }
 
 #[derive(Debug, PartialEq, Eq)]
 #[repr(u8)]
-enum RSym {
+enum RespSym {
     SimpleString = b'+',
     Error = b'-',
     Integer = b':',
@@ -31,7 +31,7 @@ enum RSym {
     Array = b'*',
 }
 
-impl TryFrom<u8> for RSym {
+impl TryFrom<u8> for RespSym {
     type Error = ProtoError;
 
     fn try_from(value: u8) -> Result<Self> {
@@ -46,11 +46,11 @@ impl TryFrom<u8> for RSym {
     }
 }
 
-pub fn decode<T: BufRead>(mut stream: T) -> Result<RObj> {
+pub fn decode<T: BufRead>(mut stream: T) -> Result<RespVal> {
     do_decode(&mut stream, 0)
 }
 
-fn do_decode(stream: &mut impl BufRead, depth: usize) -> Result<RObj> {
+fn do_decode(stream: &mut impl BufRead, depth: usize) -> Result<RespVal> {
     if depth > DEPTH_LIMIT {
         return Err(ProtoError::ExceededDepthLimit);
     }
@@ -58,27 +58,27 @@ fn do_decode(stream: &mut impl BufRead, depth: usize) -> Result<RObj> {
     let (type_sym, value_str) = read_header(stream)?;
 
     let value = match type_sym {
-        RSym::SimpleString => RObj::SimpleString(value_str.into()),
-        RSym::Error => RObj::Error(value_str.into()),
-        RSym::Integer => RObj::Integer(value_str.parse()?),
-        RSym::BulkString => {
+        RespSym::SimpleString => RespVal::SimpleString(value_str.into()),
+        RespSym::Error => RespVal::Error(value_str.into()),
+        RespSym::Integer => RespVal::Integer(value_str.parse()?),
+        RespSym::BulkString => {
             let len = value_str
                 .parse()
                 .or(Err(ProtoError::InvalidBulkStringSize))?;
             let value = read_bulk_string(stream, len)?;
-            RObj::BulkString(value)
+            RespVal::BulkString(value)
         }
-        RSym::Array => {
+        RespSym::Array => {
             let len = value_str.parse().or(Err(ProtoError::InvalidArraySize))?;
             let value = read_array(stream, len, depth)?;
-            RObj::Array(value)
+            RespVal::Array(value)
         }
     };
 
     Ok(value)
 }
 
-fn read_header(stream: &mut impl BufRead) -> Result<(RSym, String)> {
+fn read_header(stream: &mut impl BufRead) -> Result<(RespSym, String)> {
     let mut buffer = vec![];
     read_line(stream, &mut buffer)?;
 
@@ -86,7 +86,7 @@ fn read_header(stream: &mut impl BufRead) -> Result<(RSym, String)> {
         .split_first()
         .ok_or_else(|| ProtoError::from("Error parsing resp header structure"))?;
 
-    let type_sym = RSym::try_from(type_sym)?;
+    let type_sym = RespSym::try_from(type_sym)?;
     let tail = std::str::from_utf8(tail)?.to_owned();
 
     Ok((type_sym, tail))
@@ -138,7 +138,7 @@ fn read_bulk_string(stream: &mut impl BufRead, len: i64) -> Result<Option<String
     Ok(Some(value_str.to_owned()))
 }
 
-fn read_array(stream: &mut impl BufRead, len: i64, depth: usize) -> Result<Option<Vec<RObj>>> {
+fn read_array(stream: &mut impl BufRead, len: i64, depth: usize) -> Result<Option<Vec<RespVal>>> {
     if len == -1 {
         return Ok(None);
     }
@@ -230,13 +230,13 @@ mod test {
 
     #[test]
     fn rsym() {
-        assert_eq!(RSym::try_from(b'+').unwrap(), RSym::SimpleString);
-        assert_eq!(RSym::try_from(b'-').unwrap(), RSym::Error);
-        assert_eq!(RSym::try_from(b':').unwrap(), RSym::Integer);
-        assert_eq!(RSym::try_from(b'$').unwrap(), RSym::BulkString);
-        assert_eq!(RSym::try_from(b'*').unwrap(), RSym::Array);
+        assert_eq!(RespSym::try_from(b'+').unwrap(), RespSym::SimpleString);
+        assert_eq!(RespSym::try_from(b'-').unwrap(), RespSym::Error);
+        assert_eq!(RespSym::try_from(b':').unwrap(), RespSym::Integer);
+        assert_eq!(RespSym::try_from(b'$').unwrap(), RespSym::BulkString);
+        assert_eq!(RespSym::try_from(b'*').unwrap(), RespSym::Array);
         assert_eq!(
-            RSym::try_from(b'0').unwrap_err(),
+            RespSym::try_from(b'0').unwrap_err(),
             ProtoError::UnsupportedSymbol
         );
     }
@@ -245,56 +245,59 @@ mod test {
     fn decode_simple_string() {
         let input: &[u8] = b"+OK\r\n";
         let result = decode(input);
-        assert_eq!(result.unwrap(), RObj::SimpleString("OK".into()));
+        assert_eq!(result.unwrap(), RespVal::SimpleString("OK".into()));
     }
 
     #[test]
     fn decode_error() {
         let input: &[u8] = b"-Error message\r\n";
         let result = decode(input);
-        assert_eq!(result.unwrap(), RObj::Error("Error message".into()));
+        assert_eq!(result.unwrap(), RespVal::Error("Error message".into()));
     }
 
     #[test]
     fn decode_integer() {
         let input: &[u8] = b":1000\r\n";
         let result = decode(input);
-        assert_eq!(result.unwrap(), RObj::Integer(1000i64));
+        assert_eq!(result.unwrap(), RespVal::Integer(1000i64));
     }
 
     #[test]
     fn decode_bulk_string() {
         let input: &[u8] = b"$8\r\nabc\r\ndef\r\n";
         let result = decode(input);
-        assert_eq!(result.unwrap(), RObj::BulkString(Some("abc\r\ndef".into())));
+        assert_eq!(
+            result.unwrap(),
+            RespVal::BulkString(Some("abc\r\ndef".into()))
+        );
     }
 
     #[test]
     fn decode_empty_bulk_string() {
         let input: &[u8] = b"$0\r\n\r\n";
         let result = decode(input);
-        assert_eq!(result.unwrap(), RObj::BulkString(Some("".into())));
+        assert_eq!(result.unwrap(), RespVal::BulkString(Some("".into())));
     }
 
     #[test]
     fn decode_null_bulk_string() {
         let input: &[u8] = b"$-1\r\n";
         let result = decode(input);
-        assert_eq!(result.unwrap(), RObj::BulkString(None));
+        assert_eq!(result.unwrap(), RespVal::BulkString(None));
     }
 
     #[test]
     fn decode_null_array() {
         let input: &[u8] = b"*-1\r\n";
         let result = decode(input);
-        assert_eq!(result.unwrap(), RObj::Array(None));
+        assert_eq!(result.unwrap(), RespVal::Array(None));
     }
 
     #[test]
     fn decode_empty_array() {
         let input: &[u8] = b"*0\r\n";
         let result = decode(input);
-        assert_eq!(result.unwrap(), RObj::Array(Some(vec![])));
+        assert_eq!(result.unwrap(), RespVal::Array(Some(vec![])));
     }
 
     #[test]
@@ -312,12 +315,14 @@ mod test {
         let result = decode(input);
         assert_eq!(
             result.unwrap(),
-            RObj::Array(Some(vec![
-                RObj::SimpleString("1".into()),
-                RObj::Error("2".into()),
-                RObj::Integer(3),
-                RObj::BulkString(Some("4".into())),
-                RObj::Array(Some(vec![RObj::Array(Some(vec![RObj::Array(None),])),]))
+            RespVal::Array(Some(vec![
+                RespVal::SimpleString("1".into()),
+                RespVal::Error("2".into()),
+                RespVal::Integer(3),
+                RespVal::BulkString(Some("4".into())),
+                RespVal::Array(Some(vec![RespVal::Array(Some(
+                    vec![RespVal::Array(None),]
+                )),]))
             ]))
         );
     }

@@ -4,7 +4,7 @@ use std::net::{TcpListener, TcpStream};
 
 use redis_clone::{
     errors::{ProtoError, Result},
-    protocol::{self, RObj},
+    protocol::{self, RespVal},
 };
 
 fn main() -> Result<()> {
@@ -38,13 +38,13 @@ fn handle_client(stream: TcpStream, db: &mut HashMap<String, String>) -> Result<
 
         println!("Request: {:?}", request);
 
-        if let RObj::Array(Some(argv)) = request {
-            if let Some(RObj::BulkString(Some(command))) = argv.get(0) {
+        if let RespVal::Array(Some(argv)) = request {
+            if let Some(RespVal::BulkString(Some(command))) = argv.get(0) {
                 println!("Command: {}", command);
                 match command.as_ref() {
                     "set" => {
-                        if let Some(RObj::BulkString(Some(key))) = argv.get(1) {
-                            if let Some(RObj::BulkString(Some(value))) = argv.get(2) {
+                        if let Some(RespVal::BulkString(Some(key))) = argv.get(1) {
+                            if let Some(RespVal::BulkString(Some(value))) = argv.get(2) {
                                 db.insert(key.to_owned(), value.to_owned());
                                 out_stream.write_all(b"+OK\r\n")?;
                             } else {
@@ -53,22 +53,22 @@ fn handle_client(stream: TcpStream, db: &mut HashMap<String, String>) -> Result<
                         } else {
                             out_stream.write_all(b"-ERR missing key\r\n")?;
                         }
-                    },
+                    }
                     "get" => {
-                        if let Some(RObj::BulkString(Some(key))) = argv.get(1) {
+                        if let Some(RespVal::BulkString(Some(key))) = argv.get(1) {
                             match db.get(key) {
                                 Some(value) => {
                                     let out = format!("${}\r\n{}\r\n", value.len(), value);
                                     out_stream.write_all(out.as_bytes())?;
-                                },
-                                None => out_stream.write_all(b"$-1\r\n")?
+                                }
+                                None => out_stream.write_all(b"$-1\r\n")?,
                             }
                         } else {
                             out_stream.write_all(b"-ERR missing key\r\n")?;
                         }
-                    },
+                    }
                     "del" => {
-                        if let Some(RObj::BulkString(Some(key))) = argv.get(1) {
+                        if let Some(RespVal::BulkString(Some(key))) = argv.get(1) {
                             match db.remove(key) {
                                 Some(_) => out_stream.write_all(b":1\r\n")?,
                                 None => out_stream.write_all(b":0\r\n")?,
@@ -76,7 +76,7 @@ fn handle_client(stream: TcpStream, db: &mut HashMap<String, String>) -> Result<
                         } else {
                             out_stream.write_all(b"-ERR missing key\r\n")?;
                         }
-                    },
+                    }
                     _ => todo!(),
                 };
             } else {
