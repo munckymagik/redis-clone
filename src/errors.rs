@@ -2,7 +2,7 @@ use std::error::Error as StdError;
 use std::fmt::{self, Display};
 
 pub type BoxedError = Box<dyn StdError>;
-pub type Result<T> = std::result::Result<T, RespError>;
+pub type RespResult<T> = std::result::Result<T, RespError>;
 
 #[derive(Debug)]
 pub enum RespError {

@@ -3,7 +3,7 @@ use std::cmp::PartialEq;
 use std::convert::{TryFrom, TryInto};
 use std::io::{BufRead, Read};
 
-use crate::errors::{RespError, Result};
+use crate::errors::{RespError, RespResult};
 
 const DEPTH_LIMIT: usize = 512;
 const MAX_ARRAY_SIZE: usize = 1024 * 1024;
@@ -34,7 +34,7 @@ enum RespSym {
 impl TryFrom<u8> for RespSym {
     type Error = RespError;
 
-    fn try_from(value: u8) -> Result<Self> {
+    fn try_from(value: u8) -> RespResult<Self> {
         match value {
             v if v == Self::SimpleString as u8 => Ok(Self::SimpleString),
             v if v == Self::Error as u8 => Ok(Self::Error),
@@ -46,11 +46,11 @@ impl TryFrom<u8> for RespSym {
     }
 }
 
-pub fn decode<T: BufRead>(mut stream: T) -> Result<RespVal> {
+pub fn decode<T: BufRead>(mut stream: T) -> RespResult<RespVal> {
     do_decode(&mut stream, 0)
 }
 
-fn do_decode(stream: &mut impl BufRead, depth: usize) -> Result<RespVal> {
+fn do_decode(stream: &mut impl BufRead, depth: usize) -> RespResult<RespVal> {
     if depth > DEPTH_LIMIT {
         return Err(RespError::ExceededDepthLimit);
     }
@@ -78,7 +78,7 @@ fn do_decode(stream: &mut impl BufRead, depth: usize) -> Result<RespVal> {
     Ok(value)
 }
 
-fn read_header(stream: &mut impl BufRead) -> Result<(RespSym, String)> {
+fn read_header(stream: &mut impl BufRead) -> RespResult<(RespSym, String)> {
     let mut buffer = vec![];
     read_line(stream, &mut buffer)?;
 
@@ -92,7 +92,7 @@ fn read_header(stream: &mut impl BufRead) -> Result<(RespSym, String)> {
     Ok((type_sym, tail))
 }
 
-fn read_line(stream: &mut impl BufRead, buffer: &mut Vec<u8>) -> Result<()> {
+fn read_line(stream: &mut impl BufRead, buffer: &mut Vec<u8>) -> RespResult<()> {
     let limit = MAX_LINE_LENGTH.try_into().unwrap();
     let num_bytes = stream.take(limit).read_until(LF, buffer)?;
 
@@ -120,7 +120,7 @@ fn read_line(stream: &mut impl BufRead, buffer: &mut Vec<u8>) -> Result<()> {
     Ok(())
 }
 
-fn read_bulk_string(stream: &mut impl BufRead, len: i64) -> Result<Option<String>> {
+fn read_bulk_string(stream: &mut impl BufRead, len: i64) -> RespResult<Option<String>> {
     if len == -1 {
         return Ok(None);
     }
@@ -138,7 +138,11 @@ fn read_bulk_string(stream: &mut impl BufRead, len: i64) -> Result<Option<String
     Ok(Some(value_str.to_owned()))
 }
 
-fn read_array(stream: &mut impl BufRead, len: i64, depth: usize) -> Result<Option<Vec<RespVal>>> {
+fn read_array(
+    stream: &mut impl BufRead,
+    len: i64,
+    depth: usize,
+) -> RespResult<Option<Vec<RespVal>>> {
     if len == -1 {
         return Ok(None);
     }
