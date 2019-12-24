@@ -3,8 +3,7 @@ use std::io::{BufReader, Write};
 use std::net::{TcpListener, TcpStream};
 
 use redis_clone::{
-    errors::{RespError, RespResult},
-    protocol::{self, RespVal},
+    protocol::{self, RespVal, RespError, RespResult},
 };
 
 fn main() -> RespResult<()> {

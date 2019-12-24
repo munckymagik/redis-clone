@@ -1,9 +1,12 @@
-/// Implementation of the RESP protool https://redis.io/topics/protocol
+//! Implementation of the RESP protool https://redis.io/topics/protocol
+
 use std::cmp::PartialEq;
 use std::convert::{TryFrom, TryInto};
 use std::io::{BufRead, Read};
 
-use crate::errors::{RespError, RespResult};
+pub mod errors;
+
+pub use errors::{RespError, RespResult};
 
 const DEPTH_LIMIT: usize = 512;
 const MAX_ARRAY_SIZE: usize = 1024 * 1024;
