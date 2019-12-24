@@ -8,6 +8,7 @@ mod decode;
 mod errors;
 mod io;
 
+pub use builder::RespBuilder;
 pub use decode::decode;
 pub use errors::{RespError, RespResult};
 

@@ -1,3 +1,5 @@
+use super::{decode, RespResult, RespVal};
+
 pub struct RespBuilder {
     lines: Vec<String>,
 }
@@ -28,10 +30,15 @@ impl RespBuilder {
         self.lines.push(format!(":{}", value));
     }
 
-    pub fn encode(&self) -> Vec<u8> {
+    pub fn as_bytes(&self) -> Vec<u8> {
         let mut buffer = self.lines.join("\r\n");
         buffer.push_str("\r\n");
         buffer.into_bytes()
+    }
+
+    pub fn decode(&self) -> RespResult<RespVal> {
+        let bytes = self.as_bytes();
+        decode(bytes.as_slice())
     }
 }
 
@@ -57,6 +64,6 @@ mod test {
                 -ERR poop detected\r\n"
             .to_vec();
 
-        assert_eq!(builder.encode(), expected);
+        assert_eq!(builder.as_bytes(), expected);
     }
 }

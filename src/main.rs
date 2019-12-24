@@ -3,7 +3,7 @@ use std::io::{BufReader, Write};
 use std::net::{TcpListener, TcpStream};
 
 use redis_clone::protocol::{self, RespError};
-use redis_clone::{process_query, Error};
+use redis_clone::{lookup_command, process_query, Error};
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
@@ -90,17 +90,22 @@ fn handle_client(stream: TcpStream, db: &mut HashMap<String, String>) -> Result<
                 }
             }
             _ => {
-                let args = multi_cmd
-                    .argv
-                    .iter()
-                    .map(|v| format!("`{}`,", v))
-                    .collect::<Vec<String>>()
-                    .join(" ");
-                write!(
-                    out_stream,
-                    "-ERR unknown command `{}`, with args beginning with: {}\r\n",
-                    multi_cmd.command, args
-                )?;
+                if let Some(cmd) = lookup_command(&multi_cmd.command) {
+                    let reply = (cmd.proc)(&multi_cmd.argv)?;
+                    out_stream.write_all(&reply.as_bytes())?;
+                } else {
+                    let args = multi_cmd
+                        .argv
+                        .iter()
+                        .map(|v| format!("`{}`,", v))
+                        .collect::<Vec<String>>()
+                        .join(" ");
+                    write!(
+                        out_stream,
+                        "-ERR unknown command `{}`, with args beginning with: {}\r\n",
+                        multi_cmd.command, args
+                    )?;
+                }
             }
         };
     }
