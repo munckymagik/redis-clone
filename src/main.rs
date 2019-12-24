@@ -26,10 +26,13 @@ fn handle_client(stream: TcpStream, db: &mut HashMap<String, String>) -> Result<
         // Clients send commands as a RESP Array of Bulk Strings
         let request = match protocol::decode(&mut reader) {
             Ok(value) => value,
-            Err(RespError::ConnectionClosed) => break,
+            Err(RespError::ConnectionClosed) => {
+                println!("Client closed connection");
+                break;
+            },
             Err(err) => {
                 let msg = err.to_string();
-                eprintln!("{}", msg);
+                println!("Reading from client: {}", msg);
                 out_stream.write_all(b"-Parser error\r\n")?;
                 break;
             }
@@ -83,10 +86,9 @@ fn handle_client(stream: TcpStream, db: &mut HashMap<String, String>) -> Result<
                 println!("ERR missing command");
             }
         } else {
-            println!("ERR request is not an array of bulk string");
+            println!("ERR unsupported request type");
         }
     }
 
-    println!("Closing connection.");
     Ok(())
 }
