@@ -2,9 +2,11 @@ use std::collections::HashMap;
 use std::io::{BufReader, Write};
 use std::net::{TcpListener, TcpStream};
 
-use redis_clone::protocol::{self, RespError, RespResult, RespVal};
+use redis_clone::protocol::{self, RespError, RespVal};
 
-fn main() -> RespResult<()> {
+type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
+
+fn main() -> Result<()> {
     let mut db: HashMap<String, String> = HashMap::new();
     let listener = TcpListener::bind("127.0.0.1:8080")?;
 
@@ -16,7 +18,7 @@ fn main() -> RespResult<()> {
     Ok(())
 }
 
-fn handle_client(stream: TcpStream, db: &mut HashMap<String, String>) -> RespResult<()> {
+fn handle_client(stream: TcpStream, db: &mut HashMap<String, String>) -> Result<()> {
     let mut out_stream = stream.try_clone()?;
     let mut reader = BufReader::new(&stream);
 
