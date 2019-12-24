@@ -3,7 +3,7 @@ use std::cmp::PartialEq;
 use std::convert::{TryFrom, TryInto};
 use std::io::{BufRead, Read};
 
-use crate::errors::{ProtoError, Result};
+use crate::errors::{RespError, Result};
 
 const DEPTH_LIMIT: usize = 512;
 const MAX_ARRAY_SIZE: usize = 1024 * 1024;
@@ -32,7 +32,7 @@ enum RespSym {
 }
 
 impl TryFrom<u8> for RespSym {
-    type Error = ProtoError;
+    type Error = RespError;
 
     fn try_from(value: u8) -> Result<Self> {
         match value {
@@ -41,7 +41,7 @@ impl TryFrom<u8> for RespSym {
             v if v == Self::Integer as u8 => Ok(Self::Integer),
             v if v == Self::BulkString as u8 => Ok(Self::BulkString),
             v if v == Self::Array as u8 => Ok(Self::Array),
-            _ => Err(ProtoError::UnsupportedSymbol),
+            _ => Err(RespError::UnsupportedSymbol),
         }
     }
 }
@@ -52,7 +52,7 @@ pub fn decode<T: BufRead>(mut stream: T) -> Result<RespVal> {
 
 fn do_decode(stream: &mut impl BufRead, depth: usize) -> Result<RespVal> {
     if depth > DEPTH_LIMIT {
-        return Err(ProtoError::ExceededDepthLimit);
+        return Err(RespError::ExceededDepthLimit);
     }
 
     let (type_sym, value_str) = read_header(stream)?;
@@ -64,12 +64,12 @@ fn do_decode(stream: &mut impl BufRead, depth: usize) -> Result<RespVal> {
         RespSym::BulkString => {
             let len = value_str
                 .parse()
-                .or(Err(ProtoError::InvalidBulkStringSize))?;
+                .or(Err(RespError::InvalidBulkStringSize))?;
             let value = read_bulk_string(stream, len)?;
             RespVal::BulkString(value)
         }
         RespSym::Array => {
-            let len = value_str.parse().or(Err(ProtoError::InvalidArraySize))?;
+            let len = value_str.parse().or(Err(RespError::InvalidArraySize))?;
             let value = read_array(stream, len, depth)?;
             RespVal::Array(value)
         }
@@ -84,7 +84,7 @@ fn read_header(stream: &mut impl BufRead) -> Result<(RespSym, String)> {
 
     let (&type_sym, tail) = buffer
         .split_first()
-        .ok_or_else(|| ProtoError::from("Error parsing resp header structure"))?;
+        .ok_or_else(|| RespError::from("Error parsing resp header structure"))?;
 
     let type_sym = RespSym::try_from(type_sym)?;
     let tail = std::str::from_utf8(tail)?.to_owned();
@@ -98,20 +98,20 @@ fn read_line(stream: &mut impl BufRead, buffer: &mut Vec<u8>) -> Result<()> {
 
     // If we got nothing then we can assume the connection has closed
     if num_bytes == 0 {
-        return Err(ProtoError::ConnectionClosed);
+        return Err(RespError::ConnectionClosed);
     }
     // We must have at least 2 bytes for CRLF
     if num_bytes < 2 {
-        return Err(ProtoError::InvalidTerminator);
+        return Err(RespError::InvalidTerminator);
     }
     // The line must be terminated by CRLF
     if &buffer[(num_bytes - 2)..] != CRLF {
         // We may be missing the CRLF because the line limit has been exceeded
         if num_bytes == MAX_LINE_LENGTH {
-            return Err(ProtoError::ExceededMaxLineLength);
+            return Err(RespError::ExceededMaxLineLength);
         }
 
-        return Err(ProtoError::InvalidTerminator);
+        return Err(RespError::InvalidTerminator);
     }
 
     // Drop the CRLF
@@ -125,10 +125,10 @@ fn read_bulk_string(stream: &mut impl BufRead, len: i64) -> Result<Option<String
         return Ok(None);
     }
 
-    let len = usize::try_from(len).or(Err(ProtoError::InvalidBulkStringSize))?;
+    let len = usize::try_from(len).or(Err(RespError::InvalidBulkStringSize))?;
 
     if len > MAX_BULK_STR_SIZE {
-        return Err(ProtoError::InvalidBulkStringSize);
+        return Err(RespError::InvalidBulkStringSize);
     }
 
     let mut buffer = vec![0; len + 2];
@@ -143,10 +143,10 @@ fn read_array(stream: &mut impl BufRead, len: i64, depth: usize) -> Result<Optio
         return Ok(None);
     }
 
-    let len = usize::try_from(len).or(Err(ProtoError::InvalidArraySize))?;
+    let len = usize::try_from(len).or(Err(RespError::InvalidArraySize))?;
 
     if len > MAX_ARRAY_SIZE {
-        return Err(ProtoError::InvalidArraySize);
+        return Err(RespError::InvalidArraySize);
     }
 
     let mut elements = Vec::with_capacity(len);
@@ -183,7 +183,7 @@ mod test {
         buffer.clear();
         assert_eq!(
             read_line(&mut stream, &mut buffer).unwrap_err(),
-            ProtoError::ConnectionClosed
+            RespError::ConnectionClosed
         );
     }
 
@@ -199,25 +199,25 @@ mod test {
         let mut buffer = vec![];
         let mut input: &[u8] = b"\n";
         let result = read_line(&mut input, &mut buffer);
-        assert_eq!(result.unwrap_err(), ProtoError::InvalidTerminator);
+        assert_eq!(result.unwrap_err(), RespError::InvalidTerminator);
 
         // Invalid case: a single LF preceeded by something other than a CR
         let mut buffer = vec![];
         let mut input: &[u8] = b"x\n";
         let result = read_line(&mut input, &mut buffer);
-        assert_eq!(result.unwrap_err(), ProtoError::InvalidTerminator);
+        assert_eq!(result.unwrap_err(), RespError::InvalidTerminator);
 
         // Invalid case: a single CR followed by not a LF
         let mut buffer = vec![];
         let mut input: &[u8] = b"\rx";
         let result = read_line(&mut input, &mut buffer);
-        assert_eq!(result.unwrap_err(), ProtoError::InvalidTerminator);
+        assert_eq!(result.unwrap_err(), RespError::InvalidTerminator);
 
         // Invalid case: no terminator
         let mut buffer = vec![];
         let mut input: &[u8] = b"x";
         let result = read_line(&mut input, &mut buffer);
-        assert_eq!(result.unwrap_err(), ProtoError::InvalidTerminator);
+        assert_eq!(result.unwrap_err(), RespError::InvalidTerminator);
     }
 
     #[test]
@@ -225,7 +225,7 @@ mod test {
         let input: Vec<u8> = b"0".repeat(MAX_LINE_LENGTH + 1);
 
         let result = decode(input.as_slice());
-        assert_eq!(result.unwrap_err(), ProtoError::ExceededMaxLineLength);
+        assert_eq!(result.unwrap_err(), RespError::ExceededMaxLineLength);
     }
 
     #[test]
@@ -237,7 +237,7 @@ mod test {
         assert_eq!(RespSym::try_from(b'*').unwrap(), RespSym::Array);
         assert_eq!(
             RespSym::try_from(b'0').unwrap_err(),
-            ProtoError::UnsupportedSymbol
+            RespError::UnsupportedSymbol
         );
     }
 
@@ -333,7 +333,7 @@ mod test {
         let input: Vec<u8> = b"*1\r\n".repeat(DEPTH_LIMIT + 1);
 
         let result = decode(input.as_slice());
-        assert_eq!(result.unwrap_err(), ProtoError::ExceededDepthLimit);
+        assert_eq!(result.unwrap_err(), RespError::ExceededDepthLimit);
     }
 
     #[test]
@@ -342,7 +342,7 @@ mod test {
         let input: &[u8] = b"*9223372036854775808\r\n";
 
         let result = decode(input);
-        assert_eq!(result.unwrap_err(), ProtoError::InvalidArraySize);
+        assert_eq!(result.unwrap_err(), RespError::InvalidArraySize);
     }
 
     #[test]
@@ -350,7 +350,7 @@ mod test {
         let input: &[u8] = b"*-2\r\n";
 
         let result = decode(input);
-        assert_eq!(result.unwrap_err(), ProtoError::InvalidArraySize);
+        assert_eq!(result.unwrap_err(), RespError::InvalidArraySize);
     }
 
     #[test]
@@ -359,7 +359,7 @@ mod test {
         let input: &[u8] = b"*1048577\r\n";
 
         let result = decode(input);
-        assert_eq!(result.unwrap_err(), ProtoError::InvalidArraySize);
+        assert_eq!(result.unwrap_err(), RespError::InvalidArraySize);
     }
 
     #[test]
@@ -368,7 +368,7 @@ mod test {
         let input: &[u8] = b"$9223372036854775808\r\n";
 
         let result = decode(input);
-        assert_eq!(result.unwrap_err(), ProtoError::InvalidBulkStringSize);
+        assert_eq!(result.unwrap_err(), RespError::InvalidBulkStringSize);
     }
 
     #[test]
@@ -376,7 +376,7 @@ mod test {
         let input: &[u8] = b"$-2\r\n";
 
         let result = decode(input);
-        assert_eq!(result.unwrap_err(), ProtoError::InvalidBulkStringSize);
+        assert_eq!(result.unwrap_err(), RespError::InvalidBulkStringSize);
     }
 
     #[test]
@@ -385,6 +385,6 @@ mod test {
         let input: &[u8] = b"$536870913\r\n";
 
         let result = decode(input);
-        assert_eq!(result.unwrap_err(), ProtoError::InvalidBulkStringSize);
+        assert_eq!(result.unwrap_err(), RespError::InvalidBulkStringSize);
     }
 }

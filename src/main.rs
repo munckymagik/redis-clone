@@ -3,7 +3,7 @@ use std::io::{BufReader, Write};
 use std::net::{TcpListener, TcpStream};
 
 use redis_clone::{
-    errors::{ProtoError, Result},
+    errors::{RespError, Result},
     protocol::{self, RespVal},
 };
 
@@ -27,7 +27,7 @@ fn handle_client(stream: TcpStream, db: &mut HashMap<String, String>) -> Result<
         // Clients send commands as a RESP Array of Bulk Strings
         let request = match protocol::decode(&mut reader) {
             Ok(value) => value,
-            Err(ProtoError::ConnectionClosed) => break,
+            Err(RespError::ConnectionClosed) => break,
             Err(err) => {
                 let msg = err.to_string();
                 eprintln!("{}", msg);
