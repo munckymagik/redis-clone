@@ -6,7 +6,6 @@ use std::convert::TryFrom;
 mod builder;
 mod decode;
 mod errors;
-mod io;
 
 pub use builder::RespBuilder;
 pub use decode::decode;
