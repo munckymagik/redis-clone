@@ -1,9 +1,10 @@
 use std::collections::HashMap;
+use std::convert::TryFrom;
 use std::io::{BufReader, Write};
 use std::net::{TcpListener, TcpStream};
 
 use redis_clone::protocol::{self, RespError};
-use redis_clone::{lookup_command, process_query, Error};
+use redis_clone::{lookup_command, Error, MultiCmd};
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
@@ -38,7 +39,7 @@ fn handle_client(stream: TcpStream, db: &mut HashMap<String, String>) -> Result<
             }
         };
 
-        let multi_cmd = match process_query(query) {
+        let multi_cmd = match MultiCmd::try_from(query) {
             Ok(multi_cmd) => multi_cmd,
             Err(Error::EmptyQuery) => {
                 // Redis ignores this and continues to await a valid command
