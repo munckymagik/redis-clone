@@ -20,11 +20,10 @@ class CommandTest < Minitest::Test
   def test_supported_commands
     all_real_commands = real_redis.command
     real_supported = all_real_commands.select { |c| SUPPORTED_COMMANDS.include? c.first }
-    # real_supported.each { |o| puts o.inspect }
 
     all_clone_commands = clone_redis.command
 
-    assert_equal all_real_commands, all_clone_commands
+    assert_equal real_supported, all_clone_commands
   end
 
   def teardown
