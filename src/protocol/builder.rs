@@ -1,5 +1,9 @@
+use super::{
+    decode, RespResult,
+    RespSym::{self, *},
+    RespVal,
+};
 use std::fmt::Display;
-use super::{decode, RespResult, RespVal, RespSym::{self, *}};
 
 pub struct RespBuilder {
     lines: Vec<String>,

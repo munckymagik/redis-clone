@@ -68,10 +68,7 @@ mod tests {
         }
 
         // count
-        let output = call(&["count".into()])
-            .unwrap()
-            .decode()
-            .unwrap();
+        let output = call(&["count".into()]).unwrap().decode().unwrap();
         assert_eq!(
             output,
             RespVal::Integer(COMMAND_TABLE.len().try_into().unwrap())

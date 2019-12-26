@@ -1,9 +1,9 @@
-use std::convert::{TryInto, TryFrom};
-use std::io::{BufRead, Read};
 use super::{
-    RespError, RespResult, RespSym, RespVal, DEPTH_LIMIT, MAX_ARRAY_SIZE,
-    MAX_BULK_STR_SIZE, CRLF, LF, MAX_LINE_LENGTH
+    RespError, RespResult, RespSym, RespVal, CRLF, DEPTH_LIMIT, LF, MAX_ARRAY_SIZE,
+    MAX_BULK_STR_SIZE, MAX_LINE_LENGTH,
 };
+use std::convert::{TryFrom, TryInto};
+use std::io::{BufRead, Read};
 
 pub fn decode<T: BufRead>(mut stream: T) -> RespResult<RespVal> {
     do_decode(&mut stream, 0)

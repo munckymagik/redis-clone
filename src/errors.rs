@@ -1,6 +1,6 @@
+use crate::protocol::RespError;
 use std::error::Error as StdError;
 use std::fmt::{self, Display};
-use crate::protocol::RespError;
 
 pub type Result<T> = std::result::Result<T, Error>;
 
