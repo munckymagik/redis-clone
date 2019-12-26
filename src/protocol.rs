@@ -27,7 +27,7 @@ pub enum RespVal {
     Array(Option<Vec<RespVal>>),
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 #[repr(u8)]
 enum RespSym {
     SimpleString = b'+',
@@ -37,16 +37,28 @@ enum RespSym {
     Array = b'*',
 }
 
+impl RespSym {
+    fn as_u8(&self) -> u8 {
+        *self as u8
+    }
+
+    fn as_char(&self) -> char {
+        char::from(self.as_u8())
+    }
+}
+
 impl TryFrom<u8> for RespSym {
     type Error = RespError;
 
     fn try_from(value: u8) -> RespResult<Self> {
+        use RespSym::*;
+
         match value {
-            v if v == Self::SimpleString as u8 => Ok(Self::SimpleString),
-            v if v == Self::Error as u8 => Ok(Self::Error),
-            v if v == Self::Integer as u8 => Ok(Self::Integer),
-            v if v == Self::BulkString as u8 => Ok(Self::BulkString),
-            v if v == Self::Array as u8 => Ok(Self::Array),
+            v if v == SimpleString.as_u8() => Ok(SimpleString),
+            v if v == Error.as_u8() => Ok(Error),
+            v if v == Integer.as_u8() => Ok(Integer),
+            v if v == BulkString.as_u8() => Ok(BulkString),
+            v if v == Array.as_u8() => Ok(Array),
             _ => Err(RespError::UnsupportedSymbol),
         }
     }
@@ -67,5 +79,8 @@ mod test {
             RespSym::try_from(b'0').unwrap_err(),
             RespError::UnsupportedSymbol
         );
+
+        assert_eq!(RespSym::Array.as_u8(), b'*');
+        assert_eq!(RespSym::Array.as_char(), '*');
     }
 }

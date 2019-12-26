@@ -1,4 +1,5 @@
-use super::{decode, RespResult, RespVal};
+use std::fmt::Display;
+use super::{decode, RespResult, RespVal, RespSym::{self, *}};
 
 pub struct RespBuilder {
     lines: Vec<String>,
@@ -10,30 +11,36 @@ impl RespBuilder {
     }
 
     pub fn add_array_len(&mut self, len: i64) {
-        self.lines.push(format!("*{}", len));
+        self.add(Array, len);
     }
 
     pub fn add_simple_string(&mut self, value: &str) {
-        self.lines.push(format!("+{}", value));
+        self.add(SimpleString, value);
     }
 
     pub fn add_bulk_string(&mut self, value: &str) {
-        self.lines.push(format!("${}", value.len()));
-        self.lines.push(value.to_owned());
+        self.add(BulkString, value.len());
+        self.add_line(value);
     }
 
     pub fn add_error(&mut self, value: &str) {
-        self.lines.push(format!("-{}", value));
+        self.add(Error, value);
     }
 
     pub fn add_integer(&mut self, value: i64) {
-        self.lines.push(format!(":{}", value));
+        self.add(Integer, value);
+    }
+
+    fn add(&mut self, sym: RespSym, value: impl Display) {
+        self.add_line(&format!("{}{}", sym.as_char(), value));
+    }
+
+    fn add_line(&mut self, value: &str) {
+        self.lines.push(format!("{}\r\n", value));
     }
 
     pub fn as_bytes(&self) -> Vec<u8> {
-        let mut buffer = self.lines.join("\r\n");
-        buffer.push_str("\r\n");
-        buffer.into_bytes()
+        self.lines.join("").into_bytes()
     }
 
     pub fn decode(&self) -> RespResult<RespVal> {
