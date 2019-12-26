@@ -3,6 +3,7 @@
 use std::cmp::PartialEq;
 use std::convert::TryFrom;
 
+mod builder;
 mod decode;
 mod errors;
 mod io;
