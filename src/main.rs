@@ -80,7 +80,7 @@ fn handle_client(stream: TcpStream, db: &mut HashMap<String, String>) -> Result<
             }
             _ => {
                 if let Some(cmd) = commands::lookup(&request.command) {
-                    let reply = (cmd.proc)(&request)?;
+                    let reply = cmd.execute(&request)?;
                     out_stream.write_all(&reply.as_bytes())?;
                 } else {
                     write!(

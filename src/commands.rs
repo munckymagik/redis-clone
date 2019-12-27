@@ -1,38 +1,48 @@
-use crate::{errors::Error, protocol::RespBuilder, request::Request};
+use crate::{
+    errors::{Error, Result},
+    protocol::RespBuilder,
+    request::Request,
+};
 
 mod command;
 
-type RedisCommandProc = fn(req: &Request) -> Result<RespBuilder, Error>;
+type RedisCommandProc = fn(req: &Request) -> Result<RespBuilder>;
 
 pub struct RedisCommand<'a> {
     pub name: &'a str,
-    pub proc: RedisCommandProc,
+    pub handler: RedisCommandProc,
     pub arity: i32,
 }
 
-fn unimplemented_command(_req: &Request) -> Result<RespBuilder, Error> {
+impl RedisCommand<'_> {
+    pub fn execute(&self, request: &Request) -> Result<RespBuilder> {
+        (self.handler)(request)
+    }
+}
+
+fn unimplemented_command(_req: &Request) -> Result<RespBuilder> {
     Err(Error::UnimplementedCommand)
 }
 
 static COMMAND_TABLE: &[RedisCommand] = &[
     RedisCommand {
         name: "get",
-        proc: unimplemented_command,
+        handler: unimplemented_command,
         arity: 2,
     },
     RedisCommand {
         name: "set",
-        proc: unimplemented_command,
+        handler: unimplemented_command,
         arity: -3,
     },
     RedisCommand {
         name: "del",
-        proc: unimplemented_command,
+        handler: unimplemented_command,
         arity: -2,
     },
     RedisCommand {
         name: "command",
-        proc: command::call,
+        handler: command::call,
         arity: -1,
     },
 ];
