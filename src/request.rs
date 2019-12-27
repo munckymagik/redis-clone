@@ -16,6 +16,16 @@ pub struct Request {
     pub argv: Vec<String>,
 }
 
+impl Request {
+    pub fn argv_to_string(&self) -> String {
+        self.argv
+            .iter()
+            .map(|v| format!("`{}`,", v))
+            .collect::<Vec<String>>()
+            .join(" ")
+    }
+}
+
 impl TryFrom<RespVal> for Request {
     type Error = Error;
 
@@ -90,5 +100,16 @@ mod tests {
         let input = RespVal::Array(None);
         let out = Request::try_from(input);
         assert_eq!(out.unwrap_err(), Error::EmptyQuery);
+    }
+
+    #[test]
+    fn test_args_to_string() {
+        let request = Request {
+            command: "xxx".to_owned(),
+            argv: vec!["1".to_owned(), "2".to_owned(), "3".to_owned()],
+        };
+
+        // Note: final comma is for consistency with real Redis
+        assert_eq!(request.argv_to_string(), "`1`, `2`, `3`,");
     }
 }

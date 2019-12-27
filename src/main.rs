@@ -83,16 +83,11 @@ fn handle_client(stream: TcpStream, db: &mut HashMap<String, String>) -> Result<
                     let reply = (cmd.proc)(&request.argv)?;
                     out_stream.write_all(&reply.as_bytes())?;
                 } else {
-                    let args = request
-                        .argv
-                        .iter()
-                        .map(|v| format!("`{}`,", v))
-                        .collect::<Vec<String>>()
-                        .join(" ");
                     write!(
                         out_stream,
                         "-ERR unknown command `{}`, with args beginning with: {}\r\n",
-                        request.command, args
+                        request.command,
+                        request.argv_to_string()
                     )?;
                 }
             }
