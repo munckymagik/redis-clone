@@ -1,14 +1,8 @@
 use std::collections::HashMap;
-use std::convert::TryFrom;
 use std::io::{BufReader, Write};
 use std::net::{TcpListener, TcpStream};
 
-use redis_clone::{
-    commands::lookup_command,
-    errors::Error,
-    protocol::{self, RespError},
-    request::Request,
-};
+use redis_clone::{commands::lookup_command, errors::Error, protocol::RespError, request};
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
@@ -29,22 +23,12 @@ fn handle_client(stream: TcpStream, db: &mut HashMap<String, String>) -> Result<
     let mut reader = BufReader::new(&stream);
 
     loop {
-        // Clients send commands as a RESP Array of Bulk Strings
-        let query = match protocol::decode(&mut reader) {
-            Ok(value) => value,
-            Err(RespError::ConnectionClosed) => {
+        let request = match request::parse(&mut reader) {
+            Ok(request) => request,
+            Err(Error::Resp(RespError::ConnectionClosed)) => {
                 println!("Client closed connection");
                 break;
             }
-            Err(ref err) => {
-                println!("Reading from client: {}", err);
-                write!(out_stream, "-ERR Parser error: {}\r\n", err)?;
-                break;
-            }
-        };
-
-        let request = match Request::try_from(query) {
-            Ok(request) => request,
             Err(Error::EmptyQuery) => {
                 // Redis ignores this and continues to await a valid command
                 continue;

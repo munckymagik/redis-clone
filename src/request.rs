@@ -1,8 +1,14 @@
 use crate::{
     errors::{Error, Result},
-    protocol::RespVal,
+    protocol::{self, RespVal},
 };
 use std::convert::TryFrom;
+use std::io::BufRead;
+
+pub fn parse(stream: &mut impl BufRead) -> Result<Request> {
+    let query = protocol::decode(stream)?;
+    Request::try_from(query)
+}
 
 #[derive(Debug, PartialEq)]
 pub struct Request {
