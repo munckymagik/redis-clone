@@ -61,7 +61,7 @@ mod test {
     use super::*;
 
     #[test]
-    fn test_builder() {
+    fn test_response() {
         let mut builder = Response::new();
         builder.add_array_len(4);
         builder.add_integer(23);

@@ -49,8 +49,7 @@ mod tests {
     use crate::protocol::RespVal;
 
     #[test]
-    fn test_call() {
-        // help
+    fn help() {
         let request = Request::new("command", &["help"]);
         let mut response = Response::new();
         call(&request, &mut response).unwrap();
@@ -66,8 +65,10 @@ mod tests {
         } else {
             panic!("not an array: {:?}", output);
         }
+    }
 
-        // count
+    #[test]
+    fn count() {
         let request = Request::new("command", &["count"]);
         let mut response = Response::new();
         call(&request, &mut response).unwrap();
@@ -76,7 +77,10 @@ mod tests {
             output,
             RespVal::Integer(COMMAND_TABLE.len().try_into().unwrap())
         );
+    }
 
+    #[test]
+    fn info() {
         // info
         // let expected_output = RespVal::Array(Some(vec![
         //     RespVal::Array(Some(vec![
@@ -93,8 +97,10 @@ mod tests {
         // ]);
         // let output = call(&["info".into(), "get".into()]).unwrap();
         // assert_eq!(output, expected_output);
+    }
 
-        // no arg default
+    #[test]
+    fn default() {
         let request = Request::new("command", &[]);
         let mut response = Response::new();
         call(&request, &mut response).unwrap();
@@ -104,7 +110,10 @@ mod tests {
         } else {
             panic!("not an array: {:?}", output);
         }
+    }
 
+    #[test]
+    fn subcommand() {
         // Unknown sub-command
         let request = Request::new("command", &["xyz"]);
         let mut response = Response::new();
