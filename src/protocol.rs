@@ -3,11 +3,9 @@
 use std::cmp::PartialEq;
 use std::convert::TryFrom;
 
-mod builder;
 mod decode;
 mod errors;
 
-pub use builder::RespBuilder;
 pub use decode::decode;
 pub use errors::{RespError, RespResult};
 
@@ -29,7 +27,7 @@ pub enum RespVal {
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 #[repr(u8)]
-enum RespSym {
+pub enum RespSym {
     SimpleString = b'+',
     Error = b'-',
     Integer = b':',
@@ -38,11 +36,11 @@ enum RespSym {
 }
 
 impl RespSym {
-    fn as_u8(&self) -> u8 {
+    pub fn as_u8(&self) -> u8 {
         *self as u8
     }
 
-    fn as_char(&self) -> char {
+    pub fn as_char(&self) -> char {
         char::from(self.as_u8())
     }
 }

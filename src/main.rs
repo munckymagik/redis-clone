@@ -1,10 +1,8 @@
 use std::collections::HashMap;
-use std::convert::TryFrom;
 use std::io::{BufReader, Write};
 use std::net::{TcpListener, TcpStream};
 
-use redis_clone::protocol::{self, RespError};
-use redis_clone::{lookup_command, Error, MultiCmd};
+use redis_clone::{commands, errors::Error, protocol::RespError, request, response::Response};
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
@@ -25,87 +23,81 @@ fn handle_client(stream: TcpStream, db: &mut HashMap<String, String>) -> Result<
     let mut reader = BufReader::new(&stream);
 
     loop {
-        // Clients send commands as a RESP Array of Bulk Strings
-        let query = match protocol::decode(&mut reader) {
-            Ok(value) => value,
-            Err(RespError::ConnectionClosed) => {
+        let mut response = Response::new();
+        let request = match request::parse(&mut reader) {
+            Ok(request) => request,
+            Err(Error::Resp(RespError::ConnectionClosed)) => {
                 println!("Client closed connection");
                 break;
             }
-            Err(ref err) => {
-                println!("Reading from client: {}", err);
-                write!(out_stream, "-ERR Parser error: {}\r\n", err)?;
-                break;
-            }
-        };
-
-        let multi_cmd = match MultiCmd::try_from(query) {
-            Ok(multi_cmd) => multi_cmd,
             Err(Error::EmptyQuery) => {
                 // Redis ignores this and continues to await a valid command
                 continue;
             }
             Err(ref err) => {
-                println!("{}", err);
-                write!(out_stream, "-ERR {}\r\n", err)?;
+                let msg = format!("ERR {}", err);
+                println!("{}", msg);
+                response.add_error(&msg);
+                out_stream.write_all(&response.as_bytes())?;
                 break;
             }
         };
 
-        println!("{:?}", multi_cmd);
+        println!("{:?}", request);
 
-        match multi_cmd.command.as_ref() {
+        match request.command.as_ref() {
             "set" => {
-                if let Some(key) = multi_cmd.argv.get(0) {
-                    if let Some(value) = multi_cmd.argv.get(1) {
+                if let Some(key) = request.arg(0) {
+                    if let Some(value) = request.arg(1) {
                         db.insert(key.to_owned(), value.to_owned());
-                        out_stream.write_all(b"+OK\r\n")?;
+                        response.add_simple_string("OK");
                     } else {
-                        out_stream.write_all(b"-ERR missing value\r\n")?;
+                        response.add_error("ERR missing value");
                     }
                 } else {
-                    out_stream.write_all(b"-ERR missing key\r\n")?;
+                    response.add_error("ERR missing key");
                 }
+
+                out_stream.write_all(&response.as_bytes())?;
             }
             "get" => {
-                if let Some(key) = multi_cmd.argv.get(0) {
+                if let Some(key) = request.arg(0) {
                     match db.get(key) {
                         Some(value) => {
-                            let out = format!("${}\r\n{}\r\n", value.len(), value);
-                            out_stream.write_all(out.as_bytes())?;
+                            response.add_bulk_string(value);
                         }
-                        None => out_stream.write_all(b"$-1\r\n")?,
+                        None => response.add_null_string(),
                     }
                 } else {
-                    out_stream.write_all(b"-ERR missing key\r\n")?;
+                    response.add_error("ERR missing key");
                 }
+
+                out_stream.write_all(&response.as_bytes())?;
             }
             "del" => {
-                if let Some(key) = multi_cmd.argv.get(0) {
+                if let Some(key) = request.arg(0) {
                     match db.remove(key) {
-                        Some(_) => out_stream.write_all(b":1\r\n")?,
-                        None => out_stream.write_all(b":0\r\n")?,
+                        Some(_) => response.add_integer(1),
+                        None => response.add_integer(0),
                     }
                 } else {
-                    out_stream.write_all(b"-ERR missing key\r\n")?;
+                    response.add_error("ERR missing key");
                 }
+
+                out_stream.write_all(&response.as_bytes())?;
             }
             _ => {
-                if let Some(cmd) = lookup_command(&multi_cmd.command) {
-                    let reply = (cmd.proc)(&multi_cmd.argv)?;
-                    out_stream.write_all(&reply.as_bytes())?;
+                if let Some(cmd) = commands::lookup(&request.command) {
+                    cmd.execute(&request, &mut response)?;
+                    out_stream.write_all(&response.as_bytes())?;
                 } else {
-                    let args = multi_cmd
-                        .argv
-                        .iter()
-                        .map(|v| format!("`{}`,", v))
-                        .collect::<Vec<String>>()
-                        .join(" ");
-                    write!(
-                        out_stream,
-                        "-ERR unknown command `{}`, with args beginning with: {}\r\n",
-                        multi_cmd.command, args
-                    )?;
+                    let msg = format!(
+                        "ERR unknown command `{}`, with args beginning with: {}",
+                        request.command,
+                        request.argv_to_string()
+                    );
+                    response.add_error(&msg);
+                    out_stream.write_all(&response.as_bytes())?;
                 }
             }
         };

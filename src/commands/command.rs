@@ -1,14 +1,11 @@
 use std::convert::TryInto;
 
-use crate::protocol::RespBuilder;
-use crate::Result;
+use crate::{errors::Result, request::Request, response::Response};
 
 use super::COMMAND_TABLE;
 
-pub(crate) fn call(args: &[String]) -> Result<RespBuilder> {
-    let mut reply = RespBuilder::new();
-
-    match args.get(0) {
+pub(crate) fn call(req: &Request, reply: &mut Response) -> Result<()> {
+    match req.arg(0) {
         Some(sub_command) => match sub_command.as_ref() {
             "help" => {
                 reply.add_array_len(COMMAND_HELP.len().try_into().unwrap());
@@ -36,7 +33,7 @@ pub(crate) fn call(args: &[String]) -> Result<RespBuilder> {
         }
     }
 
-    Ok(reply)
+    Ok(())
 }
 
 const COMMAND_HELP: &[&str] = &[
@@ -52,9 +49,11 @@ mod tests {
     use crate::protocol::RespVal;
 
     #[test]
-    fn test_call() {
-        // help
-        let output = call(&["help".into()]).unwrap().decode().unwrap();
+    fn help() {
+        let request = Request::new("command", &["help"]);
+        let mut response = Response::new();
+        call(&request, &mut response).unwrap();
+        let output = response.decode().unwrap();
         if let RespVal::Array(Some(ref lines)) = output {
             assert_eq!(lines.len(), COMMAND_HELP.len());
             assert_eq!(
@@ -66,14 +65,22 @@ mod tests {
         } else {
             panic!("not an array: {:?}", output);
         }
+    }
 
-        // count
-        let output = call(&["count".into()]).unwrap().decode().unwrap();
+    #[test]
+    fn count() {
+        let request = Request::new("command", &["count"]);
+        let mut response = Response::new();
+        call(&request, &mut response).unwrap();
+        let output = response.decode().unwrap();
         assert_eq!(
             output,
             RespVal::Integer(COMMAND_TABLE.len().try_into().unwrap())
         );
+    }
 
+    #[test]
+    fn info() {
         // info
         // let expected_output = RespVal::Array(Some(vec![
         //     RespVal::Array(Some(vec![
@@ -90,17 +97,28 @@ mod tests {
         // ]);
         // let output = call(&["info".into(), "get".into()]).unwrap();
         // assert_eq!(output, expected_output);
+    }
 
-        // no arg default
-        let output = call(&[]).unwrap().decode().unwrap();
+    #[test]
+    fn default() {
+        let request = Request::new("command", &[]);
+        let mut response = Response::new();
+        call(&request, &mut response).unwrap();
+        let output = response.decode().unwrap();
         if let RespVal::Array(Some(ref replies)) = output {
             assert_eq!(replies.len(), COMMAND_HELP.len());
         } else {
             panic!("not an array: {:?}", output);
         }
+    }
 
+    #[test]
+    fn subcommand() {
         // Unknown sub-command
-        let output = call(&["xyz".into()]).unwrap().decode().unwrap();
+        let request = Request::new("command", &["xyz"]);
+        let mut response = Response::new();
+        call(&request, &mut response).unwrap();
+        let output = response.decode().unwrap();
         let expected =
             "ERR Unknown subcommand or wrong number of arguments for 'xyz'. Try COMMAND HELP.";
         if let RespVal::Error(message) = output {
