@@ -1,12 +1,11 @@
-use crate::{
-    errors::{Error, Result},
-    request::Request,
-    response::Response,
-};
+use crate::{db::Database, errors::Result, request::Request, response::Response};
 
 mod command;
+mod del;
+mod get;
+mod set;
 
-type RedisCommandProc = fn(req: &Request, resp: &mut Response) -> Result<()>;
+type RedisCommandProc = fn(db: &mut Database, req: &Request, resp: &mut Response) -> Result<()>;
 
 pub struct RedisCommand<'a> {
     pub name: &'a str,
@@ -15,29 +14,30 @@ pub struct RedisCommand<'a> {
 }
 
 impl RedisCommand<'_> {
-    pub fn execute(&self, request: &Request, response: &mut Response) -> Result<()> {
-        (self.handler)(request, response)
+    pub fn execute(
+        &self,
+        db: &mut Database,
+        request: &Request,
+        response: &mut Response,
+    ) -> Result<()> {
+        (self.handler)(db, request, response)
     }
-}
-
-fn unimplemented_command(_req: &Request, _resp: &mut Response) -> Result<()> {
-    Err(Error::UnimplementedCommand)
 }
 
 static COMMAND_TABLE: &[RedisCommand] = &[
     RedisCommand {
         name: "get",
-        handler: unimplemented_command,
+        handler: get::call,
         arity: 2,
     },
     RedisCommand {
         name: "set",
-        handler: unimplemented_command,
+        handler: set::call,
         arity: -3,
     },
     RedisCommand {
         name: "del",
-        handler: unimplemented_command,
+        handler: del::call,
         arity: -2,
     },
     RedisCommand {

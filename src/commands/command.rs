@@ -1,10 +1,10 @@
 use std::convert::TryInto;
 
-use crate::{errors::Result, request::Request, response::Response};
+use crate::{db::Database, errors::Result, request::Request, response::Response};
 
 use super::COMMAND_TABLE;
 
-pub(crate) fn call(req: &Request, reply: &mut Response) -> Result<()> {
+pub(crate) fn call(_: &mut Database, req: &Request, reply: &mut Response) -> Result<()> {
     match req.arg(0) {
         Some(sub_command) => match sub_command.as_ref() {
             "help" => {
@@ -50,9 +50,10 @@ mod tests {
 
     #[test]
     fn help() {
+        let mut db = Database::new();
         let request = Request::new("command", &["help"]);
         let mut response = Response::new();
-        call(&request, &mut response).unwrap();
+        call(&mut db, &request, &mut response).unwrap();
         let output = response.decode().unwrap();
         if let RespVal::Array(Some(ref lines)) = output {
             assert_eq!(lines.len(), COMMAND_HELP.len());
@@ -69,9 +70,10 @@ mod tests {
 
     #[test]
     fn count() {
+        let mut db = Database::new();
         let request = Request::new("command", &["count"]);
         let mut response = Response::new();
-        call(&request, &mut response).unwrap();
+        call(&mut db, &request, &mut response).unwrap();
         let output = response.decode().unwrap();
         assert_eq!(
             output,
@@ -101,9 +103,10 @@ mod tests {
 
     #[test]
     fn default() {
+        let mut db = Database::new();
         let request = Request::new("command", &[]);
         let mut response = Response::new();
-        call(&request, &mut response).unwrap();
+        call(&mut db, &request, &mut response).unwrap();
         let output = response.decode().unwrap();
         if let RespVal::Array(Some(ref replies)) = output {
             assert_eq!(replies.len(), COMMAND_HELP.len());
@@ -114,10 +117,10 @@ mod tests {
 
     #[test]
     fn subcommand() {
-        // Unknown sub-command
+        let mut db = Database::new();
         let request = Request::new("command", &["xyz"]);
         let mut response = Response::new();
-        call(&request, &mut response).unwrap();
+        call(&mut db, &request, &mut response).unwrap();
         let output = response.decode().unwrap();
         let expected =
             "ERR Unknown subcommand or wrong number of arguments for 'xyz'. Try COMMAND HELP.";
