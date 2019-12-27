@@ -1,10 +1,11 @@
 use std::convert::TryInto;
+use std::sync::{Arc, Mutex};
 
 use crate::{db::Database, errors::Result, request::Request, response::Response};
 
 use super::COMMAND_TABLE;
 
-pub(crate) fn call(_: &mut Database, req: &Request, reply: &mut Response) -> Result<()> {
+pub(crate) fn call(_: Arc<Mutex<Database>>, req: &Request, reply: &mut Response) -> Result<()> {
     match req.arg(0) {
         Some(sub_command) => match sub_command.as_ref() {
             "help" => {
@@ -48,13 +49,18 @@ mod tests {
     use super::*;
     use crate::protocol::RespVal;
 
+    fn setup() -> (Arc<Mutex<Database>>, Response) {
+        (Arc::new(Mutex::new(Database::new())), Response::new())
+    }
+
     #[test]
     fn help() {
-        let mut db = Database::new();
         let request = Request::new("command", &["help"]);
-        let mut response = Response::new();
-        call(&mut db, &request, &mut response).unwrap();
+
+        let (db, mut response) = setup();
+        call(db, &request, &mut response).unwrap();
         let output = response.decode().unwrap();
+
         if let RespVal::Array(Some(ref lines)) = output {
             assert_eq!(lines.len(), COMMAND_HELP.len());
             assert_eq!(
@@ -70,11 +76,12 @@ mod tests {
 
     #[test]
     fn count() {
-        let mut db = Database::new();
         let request = Request::new("command", &["count"]);
-        let mut response = Response::new();
-        call(&mut db, &request, &mut response).unwrap();
+
+        let (db, mut response) = setup();
+        call(db, &request, &mut response).unwrap();
         let output = response.decode().unwrap();
+
         assert_eq!(
             output,
             RespVal::Integer(COMMAND_TABLE.len().try_into().unwrap())
@@ -103,11 +110,12 @@ mod tests {
 
     #[test]
     fn default() {
-        let mut db = Database::new();
         let request = Request::new("command", &[]);
-        let mut response = Response::new();
-        call(&mut db, &request, &mut response).unwrap();
+
+        let (db, mut response) = setup();
+        call(db, &request, &mut response).unwrap();
         let output = response.decode().unwrap();
+
         if let RespVal::Array(Some(ref replies)) = output {
             assert_eq!(replies.len(), COMMAND_HELP.len());
         } else {
@@ -117,11 +125,12 @@ mod tests {
 
     #[test]
     fn subcommand() {
-        let mut db = Database::new();
         let request = Request::new("command", &["xyz"]);
-        let mut response = Response::new();
-        call(&mut db, &request, &mut response).unwrap();
+
+        let (db, mut response) = setup();
+        call(db, &request, &mut response).unwrap();
         let output = response.decode().unwrap();
+
         let expected =
             "ERR Unknown subcommand or wrong number of arguments for 'xyz'. Try COMMAND HELP.";
         if let RespVal::Error(message) = output {
