@@ -1,12 +1,12 @@
 use crate::{
     errors::{Error, Result},
-    protocol::RespBuilder,
     request::Request,
+    response::Response,
 };
 
 mod command;
 
-type RedisCommandProc = fn(req: &Request) -> Result<RespBuilder>;
+type RedisCommandProc = fn(req: &Request) -> Result<Response>;
 
 pub struct RedisCommand<'a> {
     pub name: &'a str,
@@ -15,12 +15,12 @@ pub struct RedisCommand<'a> {
 }
 
 impl RedisCommand<'_> {
-    pub fn execute(&self, request: &Request) -> Result<RespBuilder> {
+    pub fn execute(&self, request: &Request) -> Result<Response> {
         (self.handler)(request)
     }
 }
 
-fn unimplemented_command(_req: &Request) -> Result<RespBuilder> {
+fn unimplemented_command(_req: &Request) -> Result<Response> {
     Err(Error::UnimplementedCommand)
 }
 

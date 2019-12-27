@@ -1,15 +1,15 @@
-use super::{
-    decode, RespResult,
+use crate::protocol::{
+    self, RespResult,
     RespSym::{self, *},
     RespVal,
 };
 use std::fmt::Display;
 
-pub struct RespBuilder {
+pub struct Response {
     lines: Vec<String>,
 }
 
-impl RespBuilder {
+impl Response {
     pub fn new() -> Self {
         Self { lines: vec![] }
     }
@@ -49,7 +49,7 @@ impl RespBuilder {
 
     pub fn decode(&self) -> RespResult<RespVal> {
         let bytes = self.as_bytes();
-        decode(bytes.as_slice())
+        protocol::decode(bytes.as_slice())
     }
 }
 
@@ -59,7 +59,7 @@ mod test {
 
     #[test]
     fn test_builder() {
-        let mut builder = RespBuilder::new();
+        let mut builder = Response::new();
         builder.add_array_len(4);
         builder.add_integer(23);
         builder.add_simple_string("x y z");

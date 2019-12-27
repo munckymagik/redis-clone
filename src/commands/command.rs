@@ -1,11 +1,11 @@
 use std::convert::TryInto;
 
-use crate::{errors::Result, protocol::RespBuilder, request::Request};
+use crate::{errors::Result, request::Request, response::Response};
 
 use super::COMMAND_TABLE;
 
-pub(crate) fn call(req: &Request) -> Result<RespBuilder> {
-    let mut reply = RespBuilder::new();
+pub(crate) fn call(req: &Request) -> Result<Response> {
+    let mut reply = Response::new();
 
     match req.arg(0) {
         Some(sub_command) => match sub_command.as_ref() {
