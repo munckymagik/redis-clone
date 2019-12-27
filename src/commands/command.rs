@@ -4,9 +4,7 @@ use crate::{errors::Result, request::Request, response::Response};
 
 use super::COMMAND_TABLE;
 
-pub(crate) fn call(req: &Request) -> Result<Response> {
-    let mut reply = Response::new();
-
+pub(crate) fn call(req: &Request, reply: &mut Response) -> Result<()> {
     match req.arg(0) {
         Some(sub_command) => match sub_command.as_ref() {
             "help" => {
@@ -35,7 +33,7 @@ pub(crate) fn call(req: &Request) -> Result<Response> {
         }
     }
 
-    Ok(reply)
+    Ok(())
 }
 
 const COMMAND_HELP: &[&str] = &[
@@ -54,7 +52,9 @@ mod tests {
     fn test_call() {
         // help
         let request = Request::new("command", &["help"]);
-        let output = call(&request).unwrap().decode().unwrap();
+        let mut response = Response::new();
+        call(&request, &mut response).unwrap();
+        let output = response.decode().unwrap();
         if let RespVal::Array(Some(ref lines)) = output {
             assert_eq!(lines.len(), COMMAND_HELP.len());
             assert_eq!(
@@ -69,7 +69,9 @@ mod tests {
 
         // count
         let request = Request::new("command", &["count"]);
-        let output = call(&request).unwrap().decode().unwrap();
+        let mut response = Response::new();
+        call(&request, &mut response).unwrap();
+        let output = response.decode().unwrap();
         assert_eq!(
             output,
             RespVal::Integer(COMMAND_TABLE.len().try_into().unwrap())
@@ -94,7 +96,9 @@ mod tests {
 
         // no arg default
         let request = Request::new("command", &[]);
-        let output = call(&request).unwrap().decode().unwrap();
+        let mut response = Response::new();
+        call(&request, &mut response).unwrap();
+        let output = response.decode().unwrap();
         if let RespVal::Array(Some(ref replies)) = output {
             assert_eq!(replies.len(), COMMAND_HELP.len());
         } else {
@@ -103,7 +107,9 @@ mod tests {
 
         // Unknown sub-command
         let request = Request::new("command", &["xyz"]);
-        let output = call(&request).unwrap().decode().unwrap();
+        let mut response = Response::new();
+        call(&request, &mut response).unwrap();
+        let output = response.decode().unwrap();
         let expected =
             "ERR Unknown subcommand or wrong number of arguments for 'xyz'. Try COMMAND HELP.";
         if let RespVal::Error(message) = output {

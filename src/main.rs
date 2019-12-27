@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::io::{BufReader, Write};
 use std::net::{TcpListener, TcpStream};
 
-use redis_clone::{commands, errors::Error, protocol::RespError, request};
+use redis_clone::{commands, errors::Error, protocol::RespError, request, response::Response};
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
@@ -80,7 +80,8 @@ fn handle_client(stream: TcpStream, db: &mut HashMap<String, String>) -> Result<
             }
             _ => {
                 if let Some(cmd) = commands::lookup(&request.command) {
-                    let reply = cmd.execute(&request)?;
+                    let mut reply = Response::new();
+                    cmd.execute(&request, &mut reply)?;
                     out_stream.write_all(&reply.as_bytes())?;
                 } else {
                     write!(

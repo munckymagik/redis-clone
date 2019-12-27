@@ -6,7 +6,7 @@ use crate::{
 
 mod command;
 
-type RedisCommandProc = fn(req: &Request) -> Result<Response>;
+type RedisCommandProc = fn(req: &Request, resp: &mut Response) -> Result<()>;
 
 pub struct RedisCommand<'a> {
     pub name: &'a str,
@@ -15,12 +15,12 @@ pub struct RedisCommand<'a> {
 }
 
 impl RedisCommand<'_> {
-    pub fn execute(&self, request: &Request) -> Result<Response> {
-        (self.handler)(request)
+    pub fn execute(&self, request: &Request, response: &mut Response) -> Result<()> {
+        (self.handler)(request, response)
     }
 }
 
-fn unimplemented_command(_req: &Request) -> Result<Response> {
+fn unimplemented_command(_req: &Request, _resp: &mut Response) -> Result<()> {
     Err(Error::UnimplementedCommand)
 }
 
