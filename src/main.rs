@@ -3,8 +3,12 @@ use std::convert::TryFrom;
 use std::io::{BufReader, Write};
 use std::net::{TcpListener, TcpStream};
 
-use redis_clone::protocol::{self, RespError};
-use redis_clone::{lookup_command, Error, request::Request};
+use redis_clone::{
+    commands::lookup_command,
+    errors::Error,
+    protocol::{self, RespError},
+    request::Request,
+};
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 

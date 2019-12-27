@@ -1,6 +1,6 @@
-use std::convert::TryFrom;
-use crate::protocol::RespVal;
 use crate::errors::{Error, Result};
+use crate::protocol::RespVal;
+use std::convert::TryFrom;
 
 #[derive(Debug, PartialEq)]
 pub struct Request {
