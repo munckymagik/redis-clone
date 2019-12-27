@@ -1,5 +1,7 @@
-use crate::errors::{Error, Result};
-use crate::protocol::RespVal;
+use crate::{
+    errors::{Error, Result},
+    protocol::RespVal,
+};
 use std::convert::TryFrom;
 
 #[derive(Debug, PartialEq)]

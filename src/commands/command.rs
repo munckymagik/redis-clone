@@ -1,7 +1,6 @@
 use std::convert::TryInto;
 
-use crate::errors::Result;
-use crate::protocol::RespBuilder;
+use crate::{errors::Result, protocol::RespBuilder};
 
 use super::COMMAND_TABLE;
 

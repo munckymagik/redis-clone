@@ -1,5 +1,4 @@
-use crate::errors::Error;
-use crate::protocol::RespBuilder;
+use crate::{errors::Error, protocol::RespBuilder};
 
 mod command;
 
