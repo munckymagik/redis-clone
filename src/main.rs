@@ -47,8 +47,8 @@ fn handle_client(stream: TcpStream, db: &mut HashMap<String, String>) -> Result<
 
         match request.command.as_ref() {
             "set" => {
-                if let Some(key) = request.argv.get(0) {
-                    if let Some(value) = request.argv.get(1) {
+                if let Some(key) = request.arg(0) {
+                    if let Some(value) = request.arg(1) {
                         db.insert(key.to_owned(), value.to_owned());
                         response.add_simple_string("OK");
                     } else {
@@ -61,7 +61,7 @@ fn handle_client(stream: TcpStream, db: &mut HashMap<String, String>) -> Result<
                 out_stream.write_all(&response.as_bytes())?;
             }
             "get" => {
-                if let Some(key) = request.argv.get(0) {
+                if let Some(key) = request.arg(0) {
                     match db.get(key) {
                         Some(value) => {
                             response.add_bulk_string(value);
@@ -75,7 +75,7 @@ fn handle_client(stream: TcpStream, db: &mut HashMap<String, String>) -> Result<
                 out_stream.write_all(&response.as_bytes())?;
             }
             "del" => {
-                if let Some(key) = request.argv.get(0) {
+                if let Some(key) = request.arg(0) {
                     match db.remove(key) {
                         Some(_) => response.add_integer(1),
                         None => response.add_integer(0),

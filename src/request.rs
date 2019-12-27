@@ -13,7 +13,7 @@ pub fn parse(stream: &mut impl BufRead) -> Result<Request> {
 #[derive(Debug, PartialEq)]
 pub struct Request {
     pub command: String,
-    pub argv: Vec<String>,
+    argv: Vec<String>,
 }
 
 impl Request {
