@@ -2,10 +2,13 @@ use std::io::{BufReader, Write};
 use std::net::{TcpListener, TcpStream};
 
 use crate::{
-    commands, db::Database, errors::Error, protocol::RespError, request, response::Response,
+    commands,
+    db::Database,
+    errors::{Error, Result},
+    protocol::RespError,
+    request,
+    response::Response,
 };
-
-pub type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
 pub fn serve() -> Result<()> {
     let mut db = Database::new();
