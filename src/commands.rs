@@ -1,8 +1,8 @@
-use crate::{errors::Error, protocol::RespBuilder};
+use crate::{errors::Error, protocol::RespBuilder, request::Request};
 
 mod command;
 
-type RedisCommandProc = fn(args: &[String]) -> Result<RespBuilder, Error>;
+type RedisCommandProc = fn(req: &Request) -> Result<RespBuilder, Error>;
 
 pub struct RedisCommand<'a> {
     pub name: &'a str,
@@ -10,30 +10,24 @@ pub struct RedisCommand<'a> {
     pub arity: i32,
 }
 
-fn get_command(_args: &[String]) -> Result<RespBuilder, Error> {
-    Err(Error::UnimplementedCommand)
-}
-fn set_command(_args: &[String]) -> Result<RespBuilder, Error> {
-    Err(Error::UnimplementedCommand)
-}
-fn del_command(_args: &[String]) -> Result<RespBuilder, Error> {
+fn unimplemented_command(_req: &Request) -> Result<RespBuilder, Error> {
     Err(Error::UnimplementedCommand)
 }
 
 static COMMAND_TABLE: &[RedisCommand] = &[
     RedisCommand {
         name: "get",
-        proc: get_command,
+        proc: unimplemented_command,
         arity: 2,
     },
     RedisCommand {
         name: "set",
-        proc: set_command,
+        proc: unimplemented_command,
         arity: -3,
     },
     RedisCommand {
         name: "del",
-        proc: del_command,
+        proc: unimplemented_command,
         arity: -2,
     },
     RedisCommand {

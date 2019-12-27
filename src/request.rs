@@ -17,6 +17,17 @@ pub struct Request {
 }
 
 impl Request {
+    pub fn new(name: &str, argv: &[&str]) -> Self {
+        Self {
+            command: name.to_owned(),
+            argv: argv.iter().map(|s| s.to_string()).collect(),
+        }
+    }
+
+    pub fn arg(&self, index: usize) -> Option<&String> {
+        self.argv.get(index)
+    }
+
     pub fn argv_to_string(&self) -> String {
         self.argv
             .iter()
