@@ -17,6 +17,7 @@ pub struct Request {
 }
 
 impl Request {
+    #[cfg(test)]
     pub fn new(name: &str, argv: &[&str]) -> Self {
         Self {
             command: name.to_owned(),
