@@ -4,7 +4,7 @@ use std::io::{BufReader, Write};
 use std::net::{TcpListener, TcpStream};
 
 use redis_clone::protocol::{self, RespError};
-use redis_clone::{lookup_command, Error, MultiCmd};
+use redis_clone::{lookup_command, Error, request::Request};
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
@@ -39,8 +39,8 @@ fn handle_client(stream: TcpStream, db: &mut HashMap<String, String>) -> Result<
             }
         };
 
-        let multi_cmd = match MultiCmd::try_from(query) {
-            Ok(multi_cmd) => multi_cmd,
+        let request = match Request::try_from(query) {
+            Ok(request) => request,
             Err(Error::EmptyQuery) => {
                 // Redis ignores this and continues to await a valid command
                 continue;
@@ -52,12 +52,12 @@ fn handle_client(stream: TcpStream, db: &mut HashMap<String, String>) -> Result<
             }
         };
 
-        println!("{:?}", multi_cmd);
+        println!("{:?}", request);
 
-        match multi_cmd.command.as_ref() {
+        match request.command.as_ref() {
             "set" => {
-                if let Some(key) = multi_cmd.argv.get(0) {
-                    if let Some(value) = multi_cmd.argv.get(1) {
+                if let Some(key) = request.argv.get(0) {
+                    if let Some(value) = request.argv.get(1) {
                         db.insert(key.to_owned(), value.to_owned());
                         out_stream.write_all(b"+OK\r\n")?;
                     } else {
@@ -68,7 +68,7 @@ fn handle_client(stream: TcpStream, db: &mut HashMap<String, String>) -> Result<
                 }
             }
             "get" => {
-                if let Some(key) = multi_cmd.argv.get(0) {
+                if let Some(key) = request.argv.get(0) {
                     match db.get(key) {
                         Some(value) => {
                             let out = format!("${}\r\n{}\r\n", value.len(), value);
@@ -81,7 +81,7 @@ fn handle_client(stream: TcpStream, db: &mut HashMap<String, String>) -> Result<
                 }
             }
             "del" => {
-                if let Some(key) = multi_cmd.argv.get(0) {
+                if let Some(key) = request.argv.get(0) {
                     match db.remove(key) {
                         Some(_) => out_stream.write_all(b":1\r\n")?,
                         None => out_stream.write_all(b":0\r\n")?,
@@ -91,11 +91,11 @@ fn handle_client(stream: TcpStream, db: &mut HashMap<String, String>) -> Result<
                 }
             }
             _ => {
-                if let Some(cmd) = lookup_command(&multi_cmd.command) {
-                    let reply = (cmd.proc)(&multi_cmd.argv)?;
+                if let Some(cmd) = lookup_command(&request.command) {
+                    let reply = (cmd.proc)(&request.argv)?;
                     out_stream.write_all(&reply.as_bytes())?;
                 } else {
-                    let args = multi_cmd
+                    let args = request
                         .argv
                         .iter()
                         .map(|v| format!("`{}`,", v))
@@ -104,7 +104,7 @@ fn handle_client(stream: TcpStream, db: &mut HashMap<String, String>) -> Result<
                     write!(
                         out_stream,
                         "-ERR unknown command `{}`, with args beginning with: {}\r\n",
-                        multi_cmd.command, args
+                        request.command, args
                     )?;
                 }
             }
