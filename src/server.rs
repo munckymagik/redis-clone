@@ -1,3 +1,4 @@
+use log::{debug, info, error, warn};
 use std::io::{BufReader, Write};
 use std::net::{TcpListener, TcpStream};
 
@@ -12,10 +13,11 @@ use crate::{
 
 pub fn serve() -> Result<()> {
     let mut db = Database::new();
-    let listener = TcpListener::bind("127.0.0.1:8080")?;
+    let address = "127.0.0.1:8080";
+    let listener = TcpListener::bind(address)?;
 
     // accept connections and process them serially
-    println!("Listening ...");
+    info!("Listening at {}", address);
     for stream in listener.incoming() {
         handle_client(stream?, &mut db)?;
     }
@@ -31,7 +33,7 @@ fn handle_client(stream: TcpStream, db: &mut Database) -> Result<()> {
         let request = match request::parse(&mut reader) {
             Ok(request) => request,
             Err(Error::Resp(RespError::ConnectionClosed)) => {
-                println!("Client closed connection");
+                debug!("Client closed connection");
                 break;
             }
             Err(Error::EmptyQuery) => {
@@ -40,14 +42,14 @@ fn handle_client(stream: TcpStream, db: &mut Database) -> Result<()> {
             }
             Err(ref err) => {
                 let msg = format!("ERR {}", err);
-                println!("{}", msg);
+                error!("{}", msg);
                 response.add_error(&msg);
                 out_stream.write_all(&response.as_bytes())?;
                 break;
             }
         };
 
-        println!("{:?}", request);
+        debug!("{:?}", request);
 
         if let Some(cmd) = commands::lookup(&request.command) {
             cmd.execute(db, &request, &mut response)?;
@@ -58,6 +60,7 @@ fn handle_client(stream: TcpStream, db: &mut Database) -> Result<()> {
                 request.command,
                 request.argv_to_string()
             );
+            warn!("{}", msg);
             response.add_error(&msg);
             out_stream.write_all(&response.as_bytes())?;
         }
