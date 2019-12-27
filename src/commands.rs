@@ -43,7 +43,7 @@ static COMMAND_TABLE: &[RedisCommand] = &[
     },
 ];
 
-pub fn lookup_command(name: &str) -> Option<&RedisCommand> {
+pub fn lookup(name: &str) -> Option<&RedisCommand> {
     COMMAND_TABLE.iter().find(|c| c.name == name)
 }
 
@@ -52,8 +52,8 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_lookup_command() {
-        assert!(lookup_command("get").is_some());
-        assert!(lookup_command("xxx").is_none());
+    fn test_lookup() {
+        assert!(lookup("get").is_some());
+        assert!(lookup("xxx").is_none());
     }
 }
