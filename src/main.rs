@@ -23,6 +23,7 @@ fn handle_client(stream: TcpStream, db: &mut HashMap<String, String>) -> Result<
     let mut reader = BufReader::new(&stream);
 
     loop {
+        let mut response = Response::new();
         let request = match request::parse(&mut reader) {
             Ok(request) => request,
             Err(Error::Resp(RespError::ConnectionClosed)) => {
@@ -34,8 +35,10 @@ fn handle_client(stream: TcpStream, db: &mut HashMap<String, String>) -> Result<
                 continue;
             }
             Err(ref err) => {
-                println!("{}", err);
-                write!(out_stream, "-ERR {}\r\n", err)?;
+                let msg = format!("ERR {}", err);
+                println!("{}", msg);
+                response.add_error(&msg);
+                out_stream.write_all(&response.as_bytes())?;
                 break;
             }
         };
@@ -47,49 +50,54 @@ fn handle_client(stream: TcpStream, db: &mut HashMap<String, String>) -> Result<
                 if let Some(key) = request.argv.get(0) {
                     if let Some(value) = request.argv.get(1) {
                         db.insert(key.to_owned(), value.to_owned());
-                        out_stream.write_all(b"+OK\r\n")?;
+                        response.add_simple_string("OK");
                     } else {
-                        out_stream.write_all(b"-ERR missing value\r\n")?;
+                        response.add_error("ERR missing value");
                     }
                 } else {
-                    out_stream.write_all(b"-ERR missing key\r\n")?;
+                    response.add_error("ERR missing key");
                 }
+
+                out_stream.write_all(&response.as_bytes())?;
             }
             "get" => {
                 if let Some(key) = request.argv.get(0) {
                     match db.get(key) {
                         Some(value) => {
-                            let out = format!("${}\r\n{}\r\n", value.len(), value);
-                            out_stream.write_all(out.as_bytes())?;
+                            response.add_bulk_string(value);
                         }
-                        None => out_stream.write_all(b"$-1\r\n")?,
+                        None => response.add_null_string(),
                     }
                 } else {
-                    out_stream.write_all(b"-ERR missing key\r\n")?;
+                    response.add_error("ERR missing key");
                 }
+
+                out_stream.write_all(&response.as_bytes())?;
             }
             "del" => {
                 if let Some(key) = request.argv.get(0) {
                     match db.remove(key) {
-                        Some(_) => out_stream.write_all(b":1\r\n")?,
-                        None => out_stream.write_all(b":0\r\n")?,
+                        Some(_) => response.add_integer(1),
+                        None => response.add_integer(0),
                     }
                 } else {
-                    out_stream.write_all(b"-ERR missing key\r\n")?;
+                    response.add_error("ERR missing key");
                 }
+
+                out_stream.write_all(&response.as_bytes())?;
             }
             _ => {
                 if let Some(cmd) = commands::lookup(&request.command) {
-                    let mut reply = Response::new();
-                    cmd.execute(&request, &mut reply)?;
-                    out_stream.write_all(&reply.as_bytes())?;
+                    cmd.execute(&request, &mut response)?;
+                    out_stream.write_all(&response.as_bytes())?;
                 } else {
-                    write!(
-                        out_stream,
-                        "-ERR unknown command `{}`, with args beginning with: {}\r\n",
+                    let msg = format!(
+                        "ERR unknown command `{}`, with args beginning with: {}",
                         request.command,
                         request.argv_to_string()
-                    )?;
+                    );
+                    response.add_error(&msg);
+                    out_stream.write_all(&response.as_bytes())?;
                 }
             }
         };

@@ -29,6 +29,10 @@ impl Response {
         self.add_line(value);
     }
 
+    pub fn add_null_string(&mut self) {
+        self.add(BulkString, -1i64);
+    }
+
     pub fn add_error(&mut self, value: &str) {
         self.add(Error, value);
     }
@@ -61,23 +65,57 @@ mod test {
     use super::*;
 
     #[test]
-    fn test_response() {
+    fn test_array() {
         let mut builder = Response::new();
-        builder.add_array_len(4);
+        builder.add_array_len(1);
+        builder.add_array_len(2);
         builder.add_integer(23);
         builder.add_simple_string("x y z");
-        builder.add_bulk_string("x\ny\nz");
-        builder.add_error("ERR poop detected");
 
         let expected = b"\
-                *4\r\n\
+                *1\r\n\
+                *2\r\n\
                 :23\r\n\
-                +x y z\r\n\
-                $5\r\n\
-                x\ny\nz\r\n\
-                -ERR poop detected\r\n"
-            .to_vec();
+                +x y z\r\n";
 
         assert_eq!(builder.as_bytes(), expected);
+    }
+
+    #[test]
+    fn test_integer() {
+        let mut builder = Response::new();
+        builder.add_integer(23);
+        assert_eq!(builder.as_bytes(), b":23\r\n");
+    }
+
+    #[test]
+    fn test_simple_string() {
+        let mut builder = Response::new();
+        builder.add_simple_string("x y z");
+        assert_eq!(builder.as_bytes(), b"+x y z\r\n");
+    }
+
+    #[test]
+    fn test_bulk_string() {
+        let mut builder = Response::new();
+        builder.add_bulk_string("x\ny\nz");
+        let expected = b"\
+            $5\r\n\
+            x\ny\nz\r\n";
+        assert_eq!(builder.as_bytes(), expected);
+    }
+
+    #[test]
+    fn test_null_string() {
+        let mut builder = Response::new();
+        builder.add_null_string();
+        assert_eq!(builder.as_bytes(), b"$-1\r\n");
+    }
+
+    #[test]
+    fn test_error() {
+        let mut builder = Response::new();
+        builder.add_error("ERR poop detected");
+        assert_eq!(builder.as_bytes(), b"-ERR poop detected\r\n");
     }
 }
