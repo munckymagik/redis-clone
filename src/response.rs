@@ -1,9 +1,11 @@
-use crate::protocol::{
-    self, RespResult,
-    RespSym::{self, *},
-    RespVal,
-};
+use crate::protocol::RespSym::{self, *};
 use std::fmt::Display;
+
+#[cfg(test)]
+use crate::{
+    errors::{Error, Result},
+    protocol::{self, RespVal},
+};
 
 pub struct Response {
     lines: Vec<String>,
@@ -47,9 +49,10 @@ impl Response {
         self.lines.join("").into_bytes()
     }
 
-    pub fn decode(&self) -> RespResult<RespVal> {
+    #[cfg(test)]
+    pub fn decode(&self) -> Result<RespVal> {
         let bytes = self.as_bytes();
-        protocol::decode(bytes.as_slice())
+        protocol::decode(bytes.as_slice()).map_err(|e| Error::from(e))
     }
 }
 
