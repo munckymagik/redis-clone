@@ -56,7 +56,9 @@ impl Response {
     #[cfg(test)]
     pub async fn decode(&self) -> Result<RespVal> {
         let bytes = self.as_bytes();
-        protocol::decode(bytes.as_slice()).await.map_err(|e| Error::from(e))
+        protocol::decode(bytes.as_slice())
+            .await
+            .map_err(|e| Error::from(e))
     }
 }
 

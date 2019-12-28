@@ -1,7 +1,7 @@
-use log::{debug, info, error, warn};
+use log::{debug, error, info, warn};
 use std::sync::{Arc, Mutex};
 use tokio::{
-    io::{BufReader, AsyncWriteExt},
+    io::{AsyncWriteExt, BufReader},
     net::{TcpListener, TcpStream},
     runtime::Runtime,
     stream::StreamExt,

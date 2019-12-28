@@ -46,8 +46,8 @@ const COMMAND_HELP: &[&str] = &[
 
 #[cfg(test)]
 mod tests {
-    use crate::protocol::RespVal;
     use super::*;
+    use crate::protocol::RespVal;
     use tokio;
 
     fn setup() -> (Arc<Mutex<Database>>, Response) {
@@ -91,22 +91,22 @@ mod tests {
 
     // #[tokio::test]
     // async fn info() {
-        // info
-        // let expected_output = RespVal::Array(Some(vec![
-        //     RespVal::Array(Some(vec![
-        //         RespVal::BulkString(Some("set".into())),
-        //         RespVal::Integer("-3"),
-        //         RespVal::Array(Some(vec![
-        //             RespVal::SimpleString("write"),
-        //             RespVal::SimpleString("denyoom"),
-        //         ])),
-        //         RespVal::Integer("1"),
-        //         RespVal::Integer("1"),
-        //         RespVal::Integer("1"),
-        //     ]),
-        // ]);
-        // let output = call(&["info".into(), "get".into()]).unwrap();
-        // assert_eq!(output, expected_output);
+    // info
+    // let expected_output = RespVal::Array(Some(vec![
+    //     RespVal::Array(Some(vec![
+    //         RespVal::BulkString(Some("set".into())),
+    //         RespVal::Integer("-3"),
+    //         RespVal::Array(Some(vec![
+    //             RespVal::SimpleString("write"),
+    //             RespVal::SimpleString("denyoom"),
+    //         ])),
+    //         RespVal::Integer("1"),
+    //         RespVal::Integer("1"),
+    //         RespVal::Integer("1"),
+    //     ]),
+    // ]);
+    // let output = call(&["info".into(), "get".into()]).unwrap();
+    // assert_eq!(output, expected_output);
     // }
 
     #[tokio::test]

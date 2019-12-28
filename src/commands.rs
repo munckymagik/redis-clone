@@ -6,7 +6,8 @@ mod del;
 mod get;
 mod set;
 
-type RedisCommandProc = fn(db: Arc<Mutex<Database>>, req: &Request, resp: &mut Response) -> Result<()>;
+type RedisCommandProc =
+    fn(db: Arc<Mutex<Database>>, req: &Request, resp: &mut Response) -> Result<()>;
 
 pub struct RedisCommand<'a> {
     pub name: &'a str,

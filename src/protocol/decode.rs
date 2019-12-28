@@ -12,7 +12,10 @@ pub async fn decode<T: AsyncBufRead + Unpin + Send>(mut stream: T) -> RespResult
     do_decode(&mut stream, 0).await
 }
 
-fn do_decode(stream: &mut (impl AsyncBufRead + Unpin + Send), depth: usize) -> BoxFuture<RespResult<RespVal>> {
+fn do_decode(
+    stream: &mut (impl AsyncBufRead + Unpin + Send),
+    depth: usize,
+) -> BoxFuture<RespResult<RespVal>> {
     // This async block and BoxFutre are needed to allow this function to called recursively
     async move {
         if depth > DEPTH_LIMIT {
@@ -40,10 +43,13 @@ fn do_decode(stream: &mut (impl AsyncBufRead + Unpin + Send), depth: usize) -> B
         };
 
         Ok(value)
-    }.boxed()
+    }
+    .boxed()
 }
 
-async fn read_header(stream: &mut (impl AsyncBufRead + Unpin + Send)) -> RespResult<(RespSym, String)> {
+async fn read_header(
+    stream: &mut (impl AsyncBufRead + Unpin + Send),
+) -> RespResult<(RespSym, String)> {
     let mut buffer = vec![];
     read_line(stream, &mut buffer).await?;
 
@@ -57,7 +63,10 @@ async fn read_header(stream: &mut (impl AsyncBufRead + Unpin + Send)) -> RespRes
     Ok((type_sym, tail))
 }
 
-async fn read_line(stream: &mut (impl AsyncBufRead + Unpin + Send), buffer: &mut Vec<u8>) -> RespResult<()> {
+async fn read_line(
+    stream: &mut (impl AsyncBufRead + Unpin + Send),
+    buffer: &mut Vec<u8>,
+) -> RespResult<()> {
     let limit = MAX_LINE_LENGTH.try_into().unwrap();
     let num_bytes = stream.take(limit).read_until(LF, buffer).await?;
 
@@ -85,7 +94,10 @@ async fn read_line(stream: &mut (impl AsyncBufRead + Unpin + Send), buffer: &mut
     Ok(())
 }
 
-async fn read_bulk_string(stream: &mut (impl AsyncBufRead + Unpin + Send), len: i64) -> RespResult<Option<String>> {
+async fn read_bulk_string(
+    stream: &mut (impl AsyncBufRead + Unpin + Send),
+    len: i64,
+) -> RespResult<Option<String>> {
     if len == -1 {
         return Ok(None);
     }
@@ -210,7 +222,10 @@ mod test {
     async fn decode_error() {
         let input: &[u8] = b"-Error message\r\n";
         let result = decode(input);
-        assert_eq!(result.await.unwrap(), RespVal::Error("Error message".into()));
+        assert_eq!(
+            result.await.unwrap(),
+            RespVal::Error("Error message".into())
+        );
     }
 
     #[tokio::test]

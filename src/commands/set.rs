@@ -1,7 +1,11 @@
 use crate::{db::Database, errors::Result, request::Request, response::Response};
 use std::sync::{Arc, Mutex};
 
-pub(crate) fn call(db: Arc<Mutex<Database>>, request: &Request, response: &mut Response) -> Result<()> {
+pub(crate) fn call(
+    db: Arc<Mutex<Database>>,
+    request: &Request,
+    response: &mut Response,
+) -> Result<()> {
     if let Some(key) = request.arg(0) {
         if let Some(value) = request.arg(1) {
             let mut db = db.lock().unwrap();
