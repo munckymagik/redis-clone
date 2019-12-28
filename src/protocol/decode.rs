@@ -2,44 +2,49 @@ use super::{
     RespError, RespResult, RespSym, RespVal, CRLF, DEPTH_LIMIT, LF, MAX_ARRAY_SIZE,
     MAX_BULK_STR_SIZE, MAX_LINE_LENGTH,
 };
+
+use futures::future::{BoxFuture, FutureExt};
 use std::convert::{TryFrom, TryInto};
-use std::io::{BufRead, Read};
+use std::marker::Unpin;
+use tokio::io::{AsyncBufRead, AsyncBufReadExt, AsyncReadExt};
 
-pub fn decode<T: BufRead>(mut stream: T) -> RespResult<RespVal> {
-    do_decode(&mut stream, 0)
+pub async fn decode<T: AsyncBufRead + Unpin + Send>(mut stream: T) -> RespResult<RespVal> {
+    do_decode(&mut stream, 0).await
 }
 
-fn do_decode(stream: &mut impl BufRead, depth: usize) -> RespResult<RespVal> {
-    if depth > DEPTH_LIMIT {
-        return Err(RespError::ExceededDepthLimit);
-    }
-
-    let (type_sym, value_str) = read_header(stream)?;
-
-    let value = match type_sym {
-        RespSym::SimpleString => RespVal::SimpleString(value_str.into()),
-        RespSym::Error => RespVal::Error(value_str.into()),
-        RespSym::Integer => RespVal::Integer(value_str.parse()?),
-        RespSym::BulkString => {
-            let len = value_str
-                .parse()
-                .or(Err(RespError::InvalidBulkStringSize))?;
-            let value = read_bulk_string(stream, len)?;
-            RespVal::BulkString(value)
+fn do_decode(stream: &mut (impl AsyncBufRead + Unpin + Send), depth: usize) -> BoxFuture<RespResult<RespVal>> {
+    async move {
+        if depth > DEPTH_LIMIT {
+            return Err(RespError::ExceededDepthLimit);
         }
-        RespSym::Array => {
-            let len = value_str.parse().or(Err(RespError::InvalidArraySize))?;
-            let value = read_array(stream, len, depth)?;
-            RespVal::Array(value)
-        }
-    };
 
-    Ok(value)
+        let (type_sym, value_str) = read_header(stream).await?;
+
+        let value = match type_sym {
+            RespSym::SimpleString => RespVal::SimpleString(value_str.into()),
+            RespSym::Error => RespVal::Error(value_str.into()),
+            RespSym::Integer => RespVal::Integer(value_str.parse()?),
+            RespSym::BulkString => {
+                let len = value_str
+                    .parse()
+                    .or(Err(RespError::InvalidBulkStringSize))?;
+                let value = read_bulk_string(stream, len).await?;
+                RespVal::BulkString(value)
+            }
+            RespSym::Array => {
+                let len = value_str.parse().or(Err(RespError::InvalidArraySize))?;
+                let value = read_array(stream, len, depth).await?;
+                RespVal::Array(value)
+            }
+        };
+
+        Ok(value)
+    }.boxed()
 }
 
-fn read_header(stream: &mut impl BufRead) -> RespResult<(RespSym, String)> {
+async fn read_header(stream: &mut (impl AsyncBufRead + Unpin + Send)) -> RespResult<(RespSym, String)> {
     let mut buffer = vec![];
-    read_line(stream, &mut buffer)?;
+    read_line(stream, &mut buffer).await?;
 
     let (&type_sym, tail) = buffer
         .split_first()
@@ -51,9 +56,9 @@ fn read_header(stream: &mut impl BufRead) -> RespResult<(RespSym, String)> {
     Ok((type_sym, tail))
 }
 
-fn read_line(stream: &mut impl BufRead, buffer: &mut Vec<u8>) -> RespResult<()> {
+async fn read_line(stream: &mut (impl AsyncBufRead + Unpin + Send), buffer: &mut Vec<u8>) -> RespResult<()> {
     let limit = MAX_LINE_LENGTH.try_into().unwrap();
-    let num_bytes = stream.take(limit).read_until(LF, buffer)?;
+    let num_bytes = stream.take(limit).read_until(LF, buffer).await?;
 
     // If we got nothing then we can assume the connection has closed
     if num_bytes == 0 {
@@ -79,7 +84,7 @@ fn read_line(stream: &mut impl BufRead, buffer: &mut Vec<u8>) -> RespResult<()> 
     Ok(())
 }
 
-fn read_bulk_string(stream: &mut impl BufRead, len: i64) -> RespResult<Option<String>> {
+async fn read_bulk_string(stream: &mut (impl AsyncBufRead + Unpin + Send), len: i64) -> RespResult<Option<String>> {
     if len == -1 {
         return Ok(None);
     }
@@ -91,14 +96,14 @@ fn read_bulk_string(stream: &mut impl BufRead, len: i64) -> RespResult<Option<St
     }
 
     let mut buffer = vec![0; len + 2];
-    stream.read_exact(&mut buffer)?;
+    stream.read_exact(&mut buffer).await?;
     let value_str = std::str::from_utf8(&buffer[..len])?;
 
     Ok(Some(value_str.to_owned()))
 }
 
-fn read_array(
-    stream: &mut impl BufRead,
+async fn read_array(
+    stream: &mut (impl AsyncBufRead + Unpin + Send),
     len: i64,
     depth: usize,
 ) -> RespResult<Option<Vec<RespVal>>> {
@@ -115,7 +120,7 @@ fn read_array(
     let mut elements = Vec::with_capacity(len);
 
     for _ in 0..len {
-        let elem = do_decode(stream, depth + 1)?;
+        let elem = do_decode(stream, depth + 1).await?;
         elements.push(elem);
     }
 

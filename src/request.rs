@@ -3,10 +3,11 @@ use crate::{
     protocol::{self, RespVal},
 };
 use std::convert::TryFrom;
-use std::io::BufRead;
+use std::marker::Unpin;
+use tokio::io::AsyncBufRead;
 
-pub fn parse(stream: &mut impl BufRead) -> Result<Request> {
-    let query = protocol::decode(stream)?;
+pub async fn parse(stream: &mut (impl AsyncBufRead + Unpin + Send)) -> Result<Request> {
+    let query = protocol::decode(stream).await?;
     Request::try_from(query)
 }
 

@@ -1,7 +1,7 @@
 use std::error::Error as StdError;
 use std::fmt::{self, Display};
 
-pub type BoxedError = Box<dyn StdError>;
+pub type BoxedError = Box<dyn StdError + Send + Sync + 'static>;
 pub type RespResult<T> = std::result::Result<T, RespError>;
 
 #[derive(Debug)]
