@@ -7,6 +7,7 @@ use crate::{
     protocol::{self, RespVal},
 };
 
+#[derive(Debug)]
 pub struct Response {
     lines: Vec<String>,
 }
