@@ -13,6 +13,7 @@ pub async fn decode<T: AsyncBufRead + Unpin + Send>(mut stream: T) -> RespResult
 }
 
 fn do_decode(stream: &mut (impl AsyncBufRead + Unpin + Send), depth: usize) -> BoxFuture<RespResult<RespVal>> {
+    // This async block and BoxFutre are needed to allow this function to called recursively
     async move {
         if depth > DEPTH_LIMIT {
             return Err(RespError::ExceededDepthLimit);
