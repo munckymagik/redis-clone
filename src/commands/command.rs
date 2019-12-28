@@ -1,11 +1,8 @@
-use std::convert::TryInto;
-use std::sync::{Arc, Mutex};
-
-use crate::{db::Database, errors::Result, request::Request, response::Response};
-
 use super::COMMAND_TABLE;
+use crate::{db::Database, errors::Result, request::Request, response::Response};
+use std::convert::TryInto;
 
-pub(crate) fn call(_: Arc<Mutex<Database>>, req: &Request, reply: &mut Response) -> Result<()> {
+pub(crate) fn call(_: &mut Database, req: &Request, reply: &mut Response) -> Result<()> {
     match req.arg(0) {
         Some(sub_command) => match sub_command.as_ref() {
             "help" => {
@@ -50,16 +47,16 @@ mod tests {
     use crate::protocol::RespVal;
     use tokio;
 
-    fn setup() -> (Arc<Mutex<Database>>, Response) {
-        (Arc::new(Mutex::new(Database::new())), Response::new())
+    fn setup() -> (Database, Response) {
+        (Database::new(), Response::new())
     }
 
     #[tokio::test]
     async fn help() {
         let request = Request::new("command", &["help"]);
 
-        let (db, mut response) = setup();
-        call(db, &request, &mut response).unwrap();
+        let (mut db, mut response) = setup();
+        call(&mut db, &request, &mut response).unwrap();
         let output = response.decode().await.unwrap();
 
         if let RespVal::Array(Some(ref lines)) = output {
@@ -79,8 +76,8 @@ mod tests {
     async fn count() {
         let request = Request::new("command", &["count"]);
 
-        let (db, mut response) = setup();
-        call(db, &request, &mut response).unwrap();
+        let (mut db, mut response) = setup();
+        call(&mut db, &request, &mut response).unwrap();
         let output = response.decode().await.unwrap();
 
         assert_eq!(
@@ -113,8 +110,8 @@ mod tests {
     async fn default() {
         let request = Request::new("command", &[]);
 
-        let (db, mut response) = setup();
-        call(db, &request, &mut response).unwrap();
+        let (mut db, mut response) = setup();
+        call(&mut db, &request, &mut response).unwrap();
         let output = response.decode().await.unwrap();
 
         if let RespVal::Array(Some(ref replies)) = output {
@@ -128,8 +125,8 @@ mod tests {
     async fn subcommand() {
         let request = Request::new("command", &["xyz"]);
 
-        let (db, mut response) = setup();
-        call(db, &request, &mut response).unwrap();
+        let (mut db, mut response) = setup();
+        call(&mut db, &request, &mut response).unwrap();
         let output = response.decode().await.unwrap();
 
         let expected =

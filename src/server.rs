@@ -1,5 +1,4 @@
 use log::{debug, error, info, warn};
-use std::sync::{Arc, Mutex};
 use tokio::{
     io::{AsyncWriteExt, BufReader},
     net::{TcpListener, TcpStream},
@@ -24,7 +23,7 @@ struct Message {
 }
 
 pub fn serve() -> Result<()> {
-    let db = Arc::new(Mutex::new(Database::new()));
+    let db = Database::new();
     let address = "127.0.0.1:8080";
 
     let mut rt = Runtime::new().unwrap();
@@ -35,8 +34,8 @@ pub fn serve() -> Result<()> {
     })
 }
 
-fn start_api(db: Arc<Mutex<Database>>) -> Sender<Message> {
-    let (sender, mut receiver) = mpsc::channel::<Message>(100);
+fn start_api(mut db: Database) -> Sender<Message> {
+    let (sender, mut receiver) = mpsc::channel::<Message>(512);
 
     tokio::spawn(async move {
         while let Some(mut message) = receiver.next().await {
@@ -44,7 +43,7 @@ fn start_api(db: Arc<Mutex<Database>>) -> Sender<Message> {
             let mut response = Response::new();
 
             if let Some(cmd) = commands::lookup(&request.command) {
-                if let Err(e) = cmd.execute(Arc::clone(&db), &request, &mut response) {
+                if let Err(e) = cmd.execute(&mut db, &request, &mut response) {
                     let msg = format!("Error from command {}: {:?}", request.command, e);
                     error!("{}", msg);
                     response.add_error(&msg);
