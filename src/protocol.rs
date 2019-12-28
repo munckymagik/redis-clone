@@ -9,7 +9,7 @@ mod errors;
 pub use decode::decode;
 pub use errors::{RespError, RespResult};
 
-const DEPTH_LIMIT: usize = 512;
+const DEPTH_LIMIT: usize = 420; // TODO reduced from 512 to avoid stack overflow in test
 const MAX_ARRAY_SIZE: usize = 1024 * 1024;
 const MAX_BULK_STR_SIZE: usize = 512 * 1024 * 1024;
 const MAX_LINE_LENGTH: usize = 64 * 1024;

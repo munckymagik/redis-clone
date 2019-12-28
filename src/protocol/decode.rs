@@ -131,8 +131,8 @@ async fn read_array(
 mod test {
     use super::*;
 
-    #[test]
-    fn test_read_line() {
+    #[tokio::test]
+    async fn test_read_line() {
         use std::io::Cursor;
         use std::io::Write;
 
@@ -141,123 +141,124 @@ mod test {
         stream.set_position(0);
         let mut buffer = vec![];
 
-        read_line(&mut stream, &mut buffer).unwrap();
+        read_line(&mut stream, &mut buffer).await.unwrap();
         assert_eq!(buffer, b"123");
 
         buffer.clear();
-        read_line(&mut stream, &mut buffer).unwrap();
+        read_line(&mut stream, &mut buffer).await.unwrap();
         assert_eq!(buffer, b"456");
 
         buffer.clear();
         assert_eq!(
-            read_line(&mut stream, &mut buffer).unwrap_err(),
+            read_line(&mut stream, &mut buffer).await.unwrap_err(),
             RespError::ConnectionClosed
         );
     }
 
-    #[test]
-    fn test_read_line_invalid_terminator() {
+    #[tokio::test]
+    async fn test_read_line_invalid_terminator() {
         // Valid case: an empty line
         let mut buffer = vec![];
         let mut input: &[u8] = b"\r\n";
-        read_line(&mut input, &mut buffer).unwrap();
+        read_line(&mut input, &mut buffer).await.unwrap();
         assert_eq!(buffer, b"");
 
         // Invalid case: a single LF without a CR
         let mut buffer = vec![];
         let mut input: &[u8] = b"\n";
         let result = read_line(&mut input, &mut buffer);
-        assert_eq!(result.unwrap_err(), RespError::InvalidTerminator);
+        assert_eq!(result.await.unwrap_err(), RespError::InvalidTerminator);
 
         // Invalid case: a single LF preceeded by something other than a CR
         let mut buffer = vec![];
         let mut input: &[u8] = b"x\n";
         let result = read_line(&mut input, &mut buffer);
-        assert_eq!(result.unwrap_err(), RespError::InvalidTerminator);
+        assert_eq!(result.await.unwrap_err(), RespError::InvalidTerminator);
 
         // Invalid case: a single CR followed by not a LF
         let mut buffer = vec![];
         let mut input: &[u8] = b"\rx";
         let result = read_line(&mut input, &mut buffer);
-        assert_eq!(result.unwrap_err(), RespError::InvalidTerminator);
+        assert_eq!(result.await.unwrap_err(), RespError::InvalidTerminator);
 
         // Invalid case: no terminator
         let mut buffer = vec![];
         let mut input: &[u8] = b"x";
         let result = read_line(&mut input, &mut buffer);
-        assert_eq!(result.unwrap_err(), RespError::InvalidTerminator);
+        assert_eq!(result.await.unwrap_err(), RespError::InvalidTerminator);
     }
 
-    #[test]
-    fn test_read_line_gt_max() {
+    #[tokio::test]
+    async fn test_read_line_gt_max() {
         let mut buffer = vec![];
         let input: Vec<u8> = b"0".repeat(MAX_LINE_LENGTH + 1);
+        let mut slice = input.as_slice();
 
-        let result = read_line(&mut input.as_slice(), &mut buffer);
-        assert_eq!(result.unwrap_err(), RespError::ExceededMaxLineLength);
+        let result = read_line(&mut slice, &mut buffer);
+        assert_eq!(result.await.unwrap_err(), RespError::ExceededMaxLineLength);
     }
 
-    #[test]
-    fn decode_simple_string() {
+    #[tokio::test]
+    async fn decode_simple_string() {
         let input: &[u8] = b"+OK\r\n";
         let result = decode(input);
-        assert_eq!(result.unwrap(), RespVal::SimpleString("OK".into()));
+        assert_eq!(result.await.unwrap(), RespVal::SimpleString("OK".into()));
     }
 
-    #[test]
-    fn decode_error() {
+    #[tokio::test]
+    async fn decode_error() {
         let input: &[u8] = b"-Error message\r\n";
         let result = decode(input);
-        assert_eq!(result.unwrap(), RespVal::Error("Error message".into()));
+        assert_eq!(result.await.unwrap(), RespVal::Error("Error message".into()));
     }
 
-    #[test]
-    fn decode_integer() {
+    #[tokio::test]
+    async fn decode_integer() {
         let input: &[u8] = b":1000\r\n";
         let result = decode(input);
-        assert_eq!(result.unwrap(), RespVal::Integer(1000i64));
+        assert_eq!(result.await.unwrap(), RespVal::Integer(1000i64));
     }
 
-    #[test]
-    fn decode_bulk_string() {
+    #[tokio::test]
+    async fn decode_bulk_string() {
         let input: &[u8] = b"$8\r\nabc\r\ndef\r\n";
         let result = decode(input);
         assert_eq!(
-            result.unwrap(),
+            result.await.unwrap(),
             RespVal::BulkString(Some("abc\r\ndef".into()))
         );
     }
 
-    #[test]
-    fn decode_empty_bulk_string() {
+    #[tokio::test]
+    async fn decode_empty_bulk_string() {
         let input: &[u8] = b"$0\r\n\r\n";
         let result = decode(input);
-        assert_eq!(result.unwrap(), RespVal::BulkString(Some("".into())));
+        assert_eq!(result.await.unwrap(), RespVal::BulkString(Some("".into())));
     }
 
-    #[test]
-    fn decode_null_bulk_string() {
+    #[tokio::test]
+    async fn decode_null_bulk_string() {
         let input: &[u8] = b"$-1\r\n";
         let result = decode(input);
-        assert_eq!(result.unwrap(), RespVal::BulkString(None));
+        assert_eq!(result.await.unwrap(), RespVal::BulkString(None));
     }
 
-    #[test]
-    fn decode_null_array() {
+    #[tokio::test]
+    async fn decode_null_array() {
         let input: &[u8] = b"*-1\r\n";
         let result = decode(input);
-        assert_eq!(result.unwrap(), RespVal::Array(None));
+        assert_eq!(result.await.unwrap(), RespVal::Array(None));
     }
 
-    #[test]
-    fn decode_empty_array() {
+    #[tokio::test]
+    async fn decode_empty_array() {
         let input: &[u8] = b"*0\r\n";
         let result = decode(input);
-        assert_eq!(result.unwrap(), RespVal::Array(Some(vec![])));
+        assert_eq!(result.await.unwrap(), RespVal::Array(Some(vec![])));
     }
 
-    #[test]
-    fn decode_array_of_mixed() {
+    #[tokio::test]
+    async fn decode_array_of_mixed() {
         let input: &[u8] = b"\
                                 *5\r\n\
                                 +1\r\n\
@@ -270,7 +271,7 @@ mod test {
                             ";
         let result = decode(input);
         assert_eq!(
-            result.unwrap(),
+            result.await.unwrap(),
             RespVal::Array(Some(vec![
                 RespVal::SimpleString("1".into()),
                 RespVal::Error("2".into()),
@@ -283,64 +284,64 @@ mod test {
         );
     }
 
-    #[test]
-    fn limit_recursion() {
+    #[tokio::test]
+    async fn limit_recursion() {
         // Recurse beyond the limit
         let input: Vec<u8> = b"*1\r\n".repeat(DEPTH_LIMIT + 1);
 
         let result = decode(input.as_slice());
-        assert_eq!(result.unwrap_err(), RespError::ExceededDepthLimit);
+        assert_eq!(result.await.unwrap_err(), RespError::ExceededDepthLimit);
     }
 
-    #[test]
-    fn array_invalid_size_overflow() {
+    #[tokio::test]
+    async fn array_invalid_size_overflow() {
         // i64 max + 1
         let input: &[u8] = b"*9223372036854775808\r\n";
 
         let result = decode(input);
-        assert_eq!(result.unwrap_err(), RespError::InvalidArraySize);
+        assert_eq!(result.await.unwrap_err(), RespError::InvalidArraySize);
     }
 
-    #[test]
-    fn array_invalid_size_negative() {
+    #[tokio::test]
+    async fn array_invalid_size_negative() {
         let input: &[u8] = b"*-2\r\n";
 
         let result = decode(input);
-        assert_eq!(result.unwrap_err(), RespError::InvalidArraySize);
+        assert_eq!(result.await.unwrap_err(), RespError::InvalidArraySize);
     }
 
-    #[test]
-    fn array_invalid_size_gt_max() {
+    #[tokio::test]
+    async fn array_invalid_size_gt_max() {
         // 1024 * 1024 + 1 is too large
         let input: &[u8] = b"*1048577\r\n";
 
         let result = decode(input);
-        assert_eq!(result.unwrap_err(), RespError::InvalidArraySize);
+        assert_eq!(result.await.unwrap_err(), RespError::InvalidArraySize);
     }
 
-    #[test]
-    fn bulk_string_invalid_size_overflow() {
+    #[tokio::test]
+    async fn bulk_string_invalid_size_overflow() {
         // i64 max + 1
         let input: &[u8] = b"$9223372036854775808\r\n";
 
         let result = decode(input);
-        assert_eq!(result.unwrap_err(), RespError::InvalidBulkStringSize);
+        assert_eq!(result.await.unwrap_err(), RespError::InvalidBulkStringSize);
     }
 
-    #[test]
-    fn bulk_string_invalid_size_negative() {
+    #[tokio::test]
+    async fn bulk_string_invalid_size_negative() {
         let input: &[u8] = b"$-2\r\n";
 
         let result = decode(input);
-        assert_eq!(result.unwrap_err(), RespError::InvalidBulkStringSize);
+        assert_eq!(result.await.unwrap_err(), RespError::InvalidBulkStringSize);
     }
 
-    #[test]
-    fn bulk_string_invalid_size_gt_max() {
+    #[tokio::test]
+    async fn bulk_string_invalid_size_gt_max() {
         // 512 * 1024 * 1024 + 1 is too large
         let input: &[u8] = b"$536870913\r\n";
 
         let result = decode(input);
-        assert_eq!(result.unwrap_err(), RespError::InvalidBulkStringSize);
+        assert_eq!(result.await.unwrap_err(), RespError::InvalidBulkStringSize);
     }
 }

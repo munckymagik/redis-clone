@@ -46,20 +46,21 @@ const COMMAND_HELP: &[&str] = &[
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use crate::protocol::RespVal;
+    use super::*;
+    use tokio;
 
     fn setup() -> (Arc<Mutex<Database>>, Response) {
         (Arc::new(Mutex::new(Database::new())), Response::new())
     }
 
-    #[test]
-    fn help() {
+    #[tokio::test]
+    async fn help() {
         let request = Request::new("command", &["help"]);
 
         let (db, mut response) = setup();
         call(db, &request, &mut response).unwrap();
-        let output = response.decode().unwrap();
+        let output = response.decode().await.unwrap();
 
         if let RespVal::Array(Some(ref lines)) = output {
             assert_eq!(lines.len(), COMMAND_HELP.len());
@@ -74,13 +75,13 @@ mod tests {
         }
     }
 
-    #[test]
-    fn count() {
+    #[tokio::test]
+    async fn count() {
         let request = Request::new("command", &["count"]);
 
         let (db, mut response) = setup();
         call(db, &request, &mut response).unwrap();
-        let output = response.decode().unwrap();
+        let output = response.decode().await.unwrap();
 
         assert_eq!(
             output,
@@ -88,8 +89,8 @@ mod tests {
         );
     }
 
-    #[test]
-    fn info() {
+    // #[tokio::test]
+    // async fn info() {
         // info
         // let expected_output = RespVal::Array(Some(vec![
         //     RespVal::Array(Some(vec![
@@ -106,15 +107,15 @@ mod tests {
         // ]);
         // let output = call(&["info".into(), "get".into()]).unwrap();
         // assert_eq!(output, expected_output);
-    }
+    // }
 
-    #[test]
-    fn default() {
+    #[tokio::test]
+    async fn default() {
         let request = Request::new("command", &[]);
 
         let (db, mut response) = setup();
         call(db, &request, &mut response).unwrap();
-        let output = response.decode().unwrap();
+        let output = response.decode().await.unwrap();
 
         if let RespVal::Array(Some(ref replies)) = output {
             assert_eq!(replies.len(), COMMAND_HELP.len());
@@ -123,13 +124,13 @@ mod tests {
         }
     }
 
-    #[test]
-    fn subcommand() {
+    #[tokio::test]
+    async fn subcommand() {
         let request = Request::new("command", &["xyz"]);
 
         let (db, mut response) = setup();
         call(db, &request, &mut response).unwrap();
-        let output = response.decode().unwrap();
+        let output = response.decode().await.unwrap();
 
         let expected =
             "ERR Unknown subcommand or wrong number of arguments for 'xyz'. Try COMMAND HELP.";
