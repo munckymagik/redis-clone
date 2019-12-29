@@ -1,6 +1,6 @@
 use crate::{
     errors::{Error, Result},
-    protocol::{self, RespVal},
+    protocol,
 };
 use std::convert::TryFrom;
 use std::marker::Unpin;
@@ -39,33 +39,20 @@ impl Request {
     }
 }
 
-impl TryFrom<RespVal> for Request {
+impl TryFrom<Vec<String>> for Request {
     type Error = Error;
 
-    fn try_from(query: RespVal) -> Result<Self> {
-        let args = match query {
-            RespVal::Array(Some(args)) => args,
-            RespVal::Array(None) => vec![],
-            _ => return Err(Error::UnsupportedRequestType),
-        };
-
-        if args.is_empty() {
-            return Err(Error::EmptyQuery);
+    fn try_from(mut query: Vec<String>) -> Result<Self> {
+        if query.len() == 0 {
+            return Err(Error::EmptyRequest);
         }
 
-        let mut flattened = vec![];
+        let tail = query.drain(1..).collect();
+        let head = query.pop().unwrap();
 
-        for v in args {
-            match v {
-                RespVal::BulkString(Some(arg)) => flattened.push(arg),
-                _ => return Err(Error::ProtocolError),
-            }
-        }
-
-        let (cmd, args) = flattened.split_first().unwrap();
         Ok(Request {
-            command: cmd.to_owned(),
-            argv: args.to_vec(),
+            command: head,
+            argv: tail,
         })
     }
 }
@@ -76,43 +63,27 @@ mod tests {
 
     #[test]
     fn test_try_into_request() {
-        let input = RespVal::Array(Some(vec![
-            RespVal::BulkString(Some("set".into())),
-            RespVal::BulkString(Some("x".into())),
-            RespVal::BulkString(Some("1".into())),
-        ]));
-
+        let input = vec!["set".to_string(), "x".to_string(), "1".to_string()];
         let request = Request::try_from(input).unwrap();
+
         assert_eq!(request.command, "set");
         assert_eq!(request.argv, &["x", "1"]);
     }
 
     #[test]
-    fn test_try_into_request_invalid_request_type() {
-        let out = Request::try_from(RespVal::Integer(1));
-        assert_eq!(out.unwrap_err(), Error::UnsupportedRequestType);
+    fn test_try_into_request_no_args() {
+        let input = vec!["set".to_string()];
+        let request = Request::try_from(input).unwrap();
+
+        assert_eq!(request.command, "set");
+        assert_eq!(request.argv, &[] as &[&str]);
     }
 
     #[test]
-    fn test_try_into_request_not_multi_bulk() {
-        let input = RespVal::Array(Some(vec![
-            RespVal::BulkString(Some("set".into())),
-            RespVal::BulkString(Some("x".into())),
-            RespVal::Integer(1),
-        ]));
-        let out = Request::try_from(input);
-        assert_eq!(out.unwrap_err(), Error::ProtocolError);
-    }
-
-    #[test]
-    fn test_try_into_request_empty_array() {
-        let input = RespVal::Array(Some(vec![]));
-        let out = Request::try_from(input);
-        assert_eq!(out.unwrap_err(), Error::EmptyQuery);
-
-        let input = RespVal::Array(None);
-        let out = Request::try_from(input);
-        assert_eq!(out.unwrap_err(), Error::EmptyQuery);
+    fn test_try_into_request_error_for_empty_array() {
+        let input = vec![];
+        let output = Request::try_from(input);
+        assert_eq!(output.unwrap_err(), Error::EmptyRequest);
     }
 
     #[test]
