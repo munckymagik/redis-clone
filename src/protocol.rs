@@ -4,6 +4,7 @@ use std::cmp::PartialEq;
 use std::convert::TryFrom;
 
 mod decode;
+mod decode2;
 mod errors;
 
 pub use decode::decode;
