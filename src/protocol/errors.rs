@@ -2,10 +2,10 @@ use std::error::Error as StdError;
 use std::fmt::{self, Display};
 
 pub type BoxedError = Box<dyn StdError + Send + Sync + 'static>;
-pub type RespResult<T> = std::result::Result<T, RespError>;
+pub type ProtoResult<T> = std::result::Result<T, ProtoError>;
 
 #[derive(Debug)]
-pub enum RespError {
+pub enum ProtoError {
     ConnectionClosed,
     ExceededDepthLimit,
     ExceededMaxLineLength,
@@ -18,7 +18,7 @@ pub enum RespError {
     BoxedError(BoxedError),
 }
 
-impl StdError for RespError {
+impl StdError for ProtoError {
     fn source(&self) -> Option<&(dyn StdError + 'static)> {
         match self {
             Self::BoxedError(e) => Some(&**e),
@@ -27,7 +27,7 @@ impl StdError for RespError {
     }
 }
 
-impl Display for RespError {
+impl Display for ProtoError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Self::ConnectionClosed => write!(f, "ConnectionClosed"),
@@ -44,7 +44,7 @@ impl Display for RespError {
     }
 }
 
-impl PartialEq for RespError {
+impl PartialEq for ProtoError {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
             (&Self::ConnectionClosed, &Self::ConnectionClosed) => true,
@@ -61,37 +61,37 @@ impl PartialEq for RespError {
     }
 }
 
-impl From<&str> for RespError {
+impl From<&str> for ProtoError {
     fn from(other: &str) -> Self {
         Self::Message(other.to_owned())
     }
 }
 
-impl From<String> for RespError {
+impl From<String> for ProtoError {
     fn from(other: String) -> Self {
         Self::Message(other)
     }
 }
 
-impl From<std::str::Utf8Error> for RespError {
+impl From<std::str::Utf8Error> for ProtoError {
     fn from(other: std::str::Utf8Error) -> Self {
         Self::BoxedError(other.into())
     }
 }
 
-impl From<std::io::Error> for RespError {
+impl From<std::io::Error> for ProtoError {
     fn from(other: std::io::Error) -> Self {
         Self::BoxedError(other.into())
     }
 }
 
-impl From<std::num::ParseIntError> for RespError {
+impl From<std::num::ParseIntError> for ProtoError {
     fn from(other: std::num::ParseIntError) -> Self {
         Self::BoxedError(other.into())
     }
 }
 
-impl From<std::num::TryFromIntError> for RespError {
+impl From<std::num::TryFromIntError> for ProtoError {
     fn from(other: std::num::TryFromIntError) -> Self {
         Self::BoxedError(other.into())
     }

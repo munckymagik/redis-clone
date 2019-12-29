@@ -3,7 +3,7 @@
 
 mod errors;
 
-pub use errors::{RespError, RespResult};
+pub use errors::{ProtoError, ProtoResult};
 
 const MAX_ARRAY_SIZE: usize = 1024 * 1024;
 const MAX_BULK_STR_SIZE: usize = 512 * 1024 * 1024;
@@ -15,25 +15,25 @@ use std::convert::{TryFrom, TryInto};
 use std::marker::Unpin;
 use tokio::io::{AsyncBufRead, AsyncBufReadExt, AsyncReadExt};
 
-pub async fn decode<T: AsyncBufRead + Unpin + Send>(mut stream: T) -> RespResult<Vec<String>> {
+pub async fn decode<T: AsyncBufRead + Unpin + Send>(mut stream: T) -> ProtoResult<Vec<String>> {
     let (type_sym, value_str) = read_header(&mut stream).await?;
 
     if type_sym != b'*' {
-        return Err(RespError::UnsupportedSymbol(type_sym.into()));
+        return Err(ProtoError::UnsupportedSymbol(type_sym.into()));
     }
 
-    let len = value_str.parse().or(Err(RespError::InvalidArraySize))?;
+    let len = value_str.parse().or(Err(ProtoError::InvalidArraySize))?;
     let value = read_array(&mut stream, len).await?;
     Ok(value)
 }
 
-async fn read_header(stream: &mut (impl AsyncBufRead + Unpin + Send)) -> RespResult<(u8, String)> {
+async fn read_header(stream: &mut (impl AsyncBufRead + Unpin + Send)) -> ProtoResult<(u8, String)> {
     let mut buffer = vec![];
     read_line(stream, &mut buffer).await?;
 
     let (&type_sym, tail) = buffer
         .split_first()
-        .ok_or_else(|| RespError::from("Error parsing resp header structure"))?;
+        .ok_or_else(|| ProtoError::from("Error parsing resp header structure"))?;
 
     let tail = std::str::from_utf8(tail)?.to_owned();
 
@@ -43,26 +43,26 @@ async fn read_header(stream: &mut (impl AsyncBufRead + Unpin + Send)) -> RespRes
 async fn read_line(
     stream: &mut (impl AsyncBufRead + Unpin + Send),
     buffer: &mut Vec<u8>,
-) -> RespResult<()> {
+) -> ProtoResult<()> {
     let limit = MAX_LINE_LENGTH.try_into().unwrap();
     let num_bytes = stream.take(limit).read_until(LF, buffer).await?;
 
     // If we got nothing then we can assume the connection has closed
     if num_bytes == 0 {
-        return Err(RespError::ConnectionClosed);
+        return Err(ProtoError::ConnectionClosed);
     }
     // We must have at least 2 bytes for CRLF
     if num_bytes < 2 {
-        return Err(RespError::InvalidTerminator);
+        return Err(ProtoError::InvalidTerminator);
     }
     // The line must be terminated by CRLF
     if &buffer[(num_bytes - 2)..] != CRLF {
         // We may be missing the CRLF because the line limit has been exceeded
         if num_bytes == MAX_LINE_LENGTH {
-            return Err(RespError::ExceededMaxLineLength);
+            return Err(ProtoError::ExceededMaxLineLength);
         }
 
-        return Err(RespError::InvalidTerminator);
+        return Err(ProtoError::InvalidTerminator);
     }
 
     // Drop the CRLF
@@ -74,11 +74,11 @@ async fn read_line(
 async fn read_bulk_string(
     stream: &mut (impl AsyncBufRead + Unpin + Send),
     len: i64,
-) -> RespResult<String> {
-    let len = usize::try_from(len).or(Err(RespError::InvalidBulkStringSize))?;
+) -> ProtoResult<String> {
+    let len = usize::try_from(len).or(Err(ProtoError::InvalidBulkStringSize))?;
 
     if len > MAX_BULK_STR_SIZE {
-        return Err(RespError::InvalidBulkStringSize);
+        return Err(ProtoError::InvalidBulkStringSize);
     }
 
     let mut buffer = vec![0; len + 2];
@@ -91,16 +91,16 @@ async fn read_bulk_string(
 async fn read_array(
     stream: &mut (impl AsyncBufRead + Unpin + Send),
     len: i64,
-) -> RespResult<Vec<String>> {
+) -> ProtoResult<Vec<String>> {
     // We don't need to support empty or null arrays in requests
     if len == 0 || len == -1 {
-        return Err(RespError::EmptyRequest);
+        return Err(ProtoError::EmptyRequest);
     }
 
-    let len = usize::try_from(len).or(Err(RespError::InvalidArraySize))?;
+    let len = usize::try_from(len).or(Err(ProtoError::InvalidArraySize))?;
 
     if len > MAX_ARRAY_SIZE {
-        return Err(RespError::InvalidArraySize);
+        return Err(ProtoError::InvalidArraySize);
     }
 
     let mut elements = Vec::with_capacity(len);
@@ -108,12 +108,12 @@ async fn read_array(
     for _ in 0..len {
         let (type_sym, value_str) = read_header(stream).await?;
         if type_sym != b'$' {
-            return Err(RespError::UnsupportedSymbol(type_sym.into()));
+            return Err(ProtoError::UnsupportedSymbol(type_sym.into()));
         }
 
         let len = value_str
             .parse()
-            .or(Err(RespError::InvalidBulkStringSize))?;
+            .or(Err(ProtoError::InvalidBulkStringSize))?;
         let value = read_bulk_string(stream, len).await?;
 
         elements.push(value);
@@ -146,7 +146,7 @@ mod test {
         buffer.clear();
         assert_eq!(
             read_line(&mut stream, &mut buffer).await.unwrap_err(),
-            RespError::ConnectionClosed
+            ProtoError::ConnectionClosed
         );
     }
 
@@ -162,25 +162,25 @@ mod test {
         let mut buffer = vec![];
         let mut input: &[u8] = b"\n";
         let result = read_line(&mut input, &mut buffer);
-        assert_eq!(result.await.unwrap_err(), RespError::InvalidTerminator);
+        assert_eq!(result.await.unwrap_err(), ProtoError::InvalidTerminator);
 
         // Invalid case: a single LF preceeded by something other than a CR
         let mut buffer = vec![];
         let mut input: &[u8] = b"x\n";
         let result = read_line(&mut input, &mut buffer);
-        assert_eq!(result.await.unwrap_err(), RespError::InvalidTerminator);
+        assert_eq!(result.await.unwrap_err(), ProtoError::InvalidTerminator);
 
         // Invalid case: a single CR followed by not a LF
         let mut buffer = vec![];
         let mut input: &[u8] = b"\rx";
         let result = read_line(&mut input, &mut buffer);
-        assert_eq!(result.await.unwrap_err(), RespError::InvalidTerminator);
+        assert_eq!(result.await.unwrap_err(), ProtoError::InvalidTerminator);
 
         // Invalid case: no terminator
         let mut buffer = vec![];
         let mut input: &[u8] = b"x";
         let result = read_line(&mut input, &mut buffer);
-        assert_eq!(result.await.unwrap_err(), RespError::InvalidTerminator);
+        assert_eq!(result.await.unwrap_err(), ProtoError::InvalidTerminator);
     }
 
     #[tokio::test]
@@ -190,28 +190,28 @@ mod test {
         let mut slice = input.as_slice();
 
         let result = read_line(&mut slice, &mut buffer);
-        assert_eq!(result.await.unwrap_err(), RespError::ExceededMaxLineLength);
+        assert_eq!(result.await.unwrap_err(), ProtoError::ExceededMaxLineLength);
     }
 
     #[tokio::test]
     async fn decode_not_an_array() {
         let input: &[u8] = b"x\r\n";
         let result = decode(input);
-        assert_eq!(result.await.unwrap_err(), RespError::UnsupportedSymbol('x'));
+        assert_eq!(result.await.unwrap_err(), ProtoError::UnsupportedSymbol('x'));
     }
 
     #[tokio::test]
     async fn decode_null_array() {
         let input: &[u8] = b"*-1\r\n";
         let result = decode(input);
-        assert_eq!(result.await.unwrap_err(), RespError::EmptyRequest);
+        assert_eq!(result.await.unwrap_err(), ProtoError::EmptyRequest);
     }
 
     #[tokio::test]
     async fn decode_empty_array() {
         let input: &[u8] = b"*0\r\n";
         let result = decode(input);
-        assert_eq!(result.await.unwrap_err(), RespError::EmptyRequest);
+        assert_eq!(result.await.unwrap_err(), ProtoError::EmptyRequest);
     }
 
     #[tokio::test]
@@ -228,7 +228,7 @@ mod test {
     async fn decode_array_of_not_bulk_string() {
         let input: &[u8] = b"*1\r\n:1\r\n";
         let result = decode(input);
-        assert_eq!(result.await.unwrap_err(), RespError::UnsupportedSymbol(':'));
+        assert_eq!(result.await.unwrap_err(), ProtoError::UnsupportedSymbol(':'));
     }
 
     #[tokio::test]
@@ -244,7 +244,7 @@ mod test {
         let input: &[u8] = b"*9223372036854775808\r\n";
 
         let result = decode(input);
-        assert_eq!(result.await.unwrap_err(), RespError::InvalidArraySize);
+        assert_eq!(result.await.unwrap_err(), ProtoError::InvalidArraySize);
     }
 
     #[tokio::test]
@@ -252,7 +252,7 @@ mod test {
         let input: &[u8] = b"*-2\r\n";
 
         let result = decode(input);
-        assert_eq!(result.await.unwrap_err(), RespError::InvalidArraySize);
+        assert_eq!(result.await.unwrap_err(), ProtoError::InvalidArraySize);
     }
 
     #[tokio::test]
@@ -261,7 +261,7 @@ mod test {
         let input: &[u8] = b"*1048577\r\n";
 
         let result = decode(input);
-        assert_eq!(result.await.unwrap_err(), RespError::InvalidArraySize);
+        assert_eq!(result.await.unwrap_err(), ProtoError::InvalidArraySize);
     }
 
     #[tokio::test]
@@ -270,7 +270,7 @@ mod test {
         let input: &[u8] = b"*1\r\n$9223372036854775808\r\n";
 
         let result = decode(input);
-        assert_eq!(result.await.unwrap_err(), RespError::InvalidBulkStringSize);
+        assert_eq!(result.await.unwrap_err(), ProtoError::InvalidBulkStringSize);
     }
 
     #[tokio::test]
@@ -280,7 +280,7 @@ mod test {
         let input: &[u8] = b"*1\r\n$-1\r\n";
 
         let result = decode(input);
-        assert_eq!(result.await.unwrap_err(), RespError::InvalidBulkStringSize);
+        assert_eq!(result.await.unwrap_err(), ProtoError::InvalidBulkStringSize);
     }
 
     #[tokio::test]
@@ -289,6 +289,6 @@ mod test {
         let input: &[u8] = b"*1\r\n$536870913\r\n";
 
         let result = decode(input);
-        assert_eq!(result.await.unwrap_err(), RespError::InvalidBulkStringSize);
+        assert_eq!(result.await.unwrap_err(), ProtoError::InvalidBulkStringSize);
     }
 }

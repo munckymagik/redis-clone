@@ -11,7 +11,7 @@ use crate::{
     commands,
     db::Database,
     errors::{Error, Result},
-    protocol::RespError,
+    protocol::ProtoError,
     request::{self, Request},
     response::Response,
 };
@@ -93,7 +93,7 @@ async fn handle_client(mut stream: TcpStream, mut api: Sender<Message>) -> Resul
     loop {
         let request = match request::parse(&mut reader).await {
             Ok(request) => request,
-            Err(Error::Resp(RespError::ConnectionClosed)) => {
+            Err(Error::Proto(ProtoError::ConnectionClosed)) => {
                 debug!("Client closed connection");
                 break;
             }

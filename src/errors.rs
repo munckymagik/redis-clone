@@ -1,4 +1,4 @@
-use crate::protocol::RespError;
+use crate::protocol::ProtoError;
 use std::error::Error as StdError;
 use std::fmt::{self, Display};
 
@@ -10,7 +10,7 @@ pub enum Error {
     UnimplementedCommand,
     UnsupportedRequestType,
     ProtocolError,
-    Resp(RespError),
+    Proto(ProtoError),
     Io(std::io::Error),
 }
 
@@ -23,7 +23,7 @@ impl Display for Error {
             Self::UnimplementedCommand => write!(f, "Unimplemented command"),
             Self::UnsupportedRequestType => write!(f, "Unsupported request type"),
             Self::ProtocolError => write!(f, "Protocol error: expected '$', got something else"),
-            Self::Resp(ref source) => write!(f, "{}", source),
+            Self::Proto(ref source) => write!(f, "{}", source),
             Self::Io(ref source) => write!(f, "{}", source),
         }
     }
@@ -36,18 +36,18 @@ impl PartialEq for Error {
             (&Self::UnimplementedCommand, &Self::UnimplementedCommand) => true,
             (&Self::UnsupportedRequestType, &Self::UnsupportedRequestType) => true,
             (&Self::ProtocolError, &Self::ProtocolError) => true,
-            (&Self::Resp(ref a), &Self::Resp(ref b)) => a == b,
+            (&Self::Proto(ref a), &Self::Proto(ref b)) => a == b,
             (&Self::Io(_), &Self::Io(_)) => false, // cannot be compared
             _ => false,
         }
     }
 }
 
-impl From<RespError> for Error {
-    fn from(other: RespError) -> Self {
+impl From<ProtoError> for Error {
+    fn from(other: ProtoError) -> Self {
         match other {
-            RespError::EmptyRequest => Self::EmptyQuery,
-            _ => Self::Resp(other),
+            ProtoError::EmptyRequest => Self::EmptyQuery,
+            _ => Self::Proto(other),
         }
     }
 }
@@ -65,10 +65,10 @@ mod tests {
     #[test]
     fn test_from_resp_error() {
         assert_eq!(
-            Error::from(RespError::InvalidTerminator),
-            Error::Resp(RespError::InvalidTerminator)
+            Error::from(ProtoError::InvalidTerminator),
+            Error::Proto(ProtoError::InvalidTerminator)
         );
 
-        assert_eq!(Error::from(RespError::EmptyRequest), Error::EmptyQuery,);
+        assert_eq!(Error::from(ProtoError::EmptyRequest), Error::EmptyQuery,);
     }
 }
