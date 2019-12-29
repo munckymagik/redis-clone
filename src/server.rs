@@ -97,7 +97,7 @@ async fn handle_client(mut stream: TcpStream, mut api: Sender<Message>) -> Resul
                 debug!("Client closed connection");
                 break;
             }
-            Err(Error::EmptyQuery) => {
+            Err(Error::EmptyRequest) => {
                 // Redis ignores this and continues to await a valid command
                 continue;
             }

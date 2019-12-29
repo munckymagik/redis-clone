@@ -44,7 +44,7 @@ impl TryFrom<Vec<String>> for Request {
 
     fn try_from(mut query: Vec<String>) -> Result<Self> {
         if query.len() == 0 {
-            return Err(Error::EmptyQuery);
+            return Err(Error::EmptyRequest);
         }
 
         let tail = query.drain(1..).collect();
@@ -83,7 +83,7 @@ mod tests {
     fn test_try_into_request_error_for_empty_array() {
         let input = vec![];
         let output = Request::try_from(input);
-        assert_eq!(output.unwrap_err(), Error::EmptyQuery);
+        assert_eq!(output.unwrap_err(), Error::EmptyRequest);
     }
 
     #[test]

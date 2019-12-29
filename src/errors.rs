@@ -6,7 +6,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug)]
 pub enum Error {
-    EmptyQuery,
+    EmptyRequest,
     UnimplementedCommand,
     UnsupportedRequestType,
     ProtocolError,
@@ -19,7 +19,7 @@ impl StdError for Error {}
 impl Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Self::EmptyQuery => write!(f, "Empty query"),
+            Self::EmptyRequest => write!(f, "Empty query"),
             Self::UnimplementedCommand => write!(f, "Unimplemented command"),
             Self::UnsupportedRequestType => write!(f, "Unsupported request type"),
             Self::ProtocolError => write!(f, "Protocol error: expected '$', got something else"),
@@ -32,7 +32,7 @@ impl Display for Error {
 impl PartialEq for Error {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
-            (&Self::EmptyQuery, &Self::EmptyQuery) => true,
+            (&Self::EmptyRequest, &Self::EmptyRequest) => true,
             (&Self::UnimplementedCommand, &Self::UnimplementedCommand) => true,
             (&Self::UnsupportedRequestType, &Self::UnsupportedRequestType) => true,
             (&Self::ProtocolError, &Self::ProtocolError) => true,
@@ -46,7 +46,7 @@ impl PartialEq for Error {
 impl From<ProtoError> for Error {
     fn from(other: ProtoError) -> Self {
         match other {
-            ProtoError::EmptyRequest => Self::EmptyQuery,
+            ProtoError::EmptyRequest => Self::EmptyRequest,
             _ => Self::Proto(other),
         }
     }
@@ -69,6 +69,6 @@ mod tests {
             Error::Proto(ProtoError::InvalidTerminator)
         );
 
-        assert_eq!(Error::from(ProtoError::EmptyRequest), Error::EmptyQuery,);
+        assert_eq!(Error::from(ProtoError::EmptyRequest), Error::EmptyRequest,);
     }
 }
