@@ -4,9 +4,7 @@ use std::convert::{TryFrom, TryInto};
 use std::marker::Unpin;
 use tokio::io::{AsyncBufRead, AsyncBufReadExt, AsyncReadExt};
 
-pub async fn decode<T: AsyncBufRead + Unpin + Send>(
-    mut stream: T,
-) -> RespResult<Vec<Option<String>>> {
+pub async fn decode<T: AsyncBufRead + Unpin + Send>(mut stream: T) -> RespResult<Vec<String>> {
     let (type_sym, value_str) = read_header(&mut stream).await?;
 
     if type_sym != b'*' {
@@ -65,11 +63,7 @@ async fn read_line(
 async fn read_bulk_string(
     stream: &mut (impl AsyncBufRead + Unpin + Send),
     len: i64,
-) -> RespResult<Option<String>> {
-    if len == -1 {
-        return Ok(None);
-    }
-
+) -> RespResult<String> {
     let len = usize::try_from(len).or(Err(RespError::InvalidBulkStringSize))?;
 
     if len > MAX_BULK_STR_SIZE {
@@ -80,13 +74,13 @@ async fn read_bulk_string(
     stream.read_exact(&mut buffer).await?;
     let value_str = std::str::from_utf8(&buffer[..len])?;
 
-    Ok(Some(value_str.to_owned()))
+    Ok(value_str.to_owned())
 }
 
 async fn read_array(
     stream: &mut (impl AsyncBufRead + Unpin + Send),
     len: i64,
-) -> RespResult<Vec<Option<String>>> {
+) -> RespResult<Vec<String>> {
     // We don't need to support empty or null arrays in requests
     if len == 0 || len == -1 {
         return Err(RespError::EmptyRequest);
@@ -215,7 +209,7 @@ mod test {
         let result = decode(input);
         assert_eq!(
             result.await.unwrap(),
-            vec![Some("abc\r\ndef".into()), Some("123".into()),]
+            vec!["abc\r\ndef".to_string(), "123".to_string()]
         );
     }
 
@@ -230,14 +224,7 @@ mod test {
     async fn decode_empty_bulk_string() {
         let input: &[u8] = b"*1\r\n$0\r\n\r\n";
         let result = decode(input);
-        assert_eq!(result.await.unwrap(), vec![Some("".into())]);
-    }
-
-    #[tokio::test]
-    async fn decode_null_bulk_string() {
-        let input: &[u8] = b"*1\r\n$-1\r\n";
-        let result = decode(input);
-        assert_eq!(result.await.unwrap(), vec![None]);
+        assert_eq!(result.await.unwrap(), vec!["".to_string()]);
     }
 
     #[tokio::test]
@@ -277,7 +264,9 @@ mod test {
 
     #[tokio::test]
     async fn bulk_string_invalid_size_negative() {
-        let input: &[u8] = b"*1\r\n$-2\r\n";
+        // We don't need to support null strings in requests (I think) so we
+        // consider the -1 "null string" marker as invalid
+        let input: &[u8] = b"*1\r\n$-1\r\n";
 
         let result = decode(input);
         assert_eq!(result.await.unwrap_err(), RespError::InvalidBulkStringSize);
