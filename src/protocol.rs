@@ -197,7 +197,10 @@ mod test {
     async fn decode_not_an_array() {
         let input: &[u8] = b"x\r\n";
         let result = decode(input);
-        assert_eq!(result.await.unwrap_err(), ProtoError::UnsupportedSymbol('x'));
+        assert_eq!(
+            result.await.unwrap_err(),
+            ProtoError::UnsupportedSymbol('x')
+        );
     }
 
     #[tokio::test]
@@ -228,7 +231,10 @@ mod test {
     async fn decode_array_of_not_bulk_string() {
         let input: &[u8] = b"*1\r\n:1\r\n";
         let result = decode(input);
-        assert_eq!(result.await.unwrap_err(), ProtoError::UnsupportedSymbol(':'));
+        assert_eq!(
+            result.await.unwrap_err(),
+            ProtoError::UnsupportedSymbol(':')
+        );
     }
 
     #[tokio::test]
