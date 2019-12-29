@@ -7,7 +7,7 @@ use std::marker::Unpin;
 use tokio::io::AsyncBufRead;
 
 pub async fn parse(stream: &mut (impl AsyncBufRead + Unpin + Send)) -> Result<Request> {
-    let query = protocol::decode2(stream).await?;
+    let query = protocol::decode(stream).await?;
     Request::try_from(query)
 }
 
