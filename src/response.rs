@@ -1,11 +1,22 @@
-use crate::protocol::RespSym::{self, *};
 use std::fmt::Display;
 
-#[cfg(test)]
-use crate::{
-    errors::{Error, Result},
-    protocol::{self, RespVal},
-};
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[repr(u8)]
+pub enum RespSym {
+    SimpleString = b'+',
+    Error = b'-',
+    Integer = b':',
+    BulkString = b'$',
+    Array = b'*',
+}
+
+use self::RespSym::*;
+
+impl RespSym {
+    pub fn as_char(&self) -> char {
+        char::from(*self as u8)
+    }
+}
 
 #[derive(Debug)]
 pub struct Response {
@@ -53,19 +64,16 @@ impl Response {
     pub fn as_bytes(&self) -> Vec<u8> {
         self.lines.join("").into_bytes()
     }
-
-    #[cfg(test)]
-    pub async fn decode(&self) -> Result<RespVal> {
-        let bytes = self.as_bytes();
-        protocol::decode(bytes.as_slice())
-            .await
-            .map_err(|e| Error::from(e))
-    }
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
+
+    #[test]
+    fn rsym() {
+        assert_eq!(RespSym::Array.as_char(), '*');
+    }
 
     #[test]
     fn test_array() {

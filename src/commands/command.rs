@@ -44,97 +44,48 @@ const COMMAND_HELP: &[&str] = &[
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::protocol::RespVal;
-    use tokio;
 
     fn setup() -> (Database, Response) {
         (Database::new(), Response::new())
     }
 
-    #[tokio::test]
-    async fn help() {
+    fn perform(request: &Request) -> String {
+        let (mut db, mut response) = setup();
+        call(&mut db, &request, &mut response).unwrap();
+        let output = &response.as_bytes();
+        std::str::from_utf8(output).unwrap().to_string()
+    }
+
+    #[test]
+    fn help() {
         let request = Request::new("command", &["help"]);
-
-        let (mut db, mut response) = setup();
-        call(&mut db, &request, &mut response).unwrap();
-        let output = response.decode().await.unwrap();
-
-        if let RespVal::Array(Some(ref lines)) = output {
-            assert_eq!(lines.len(), COMMAND_HELP.len());
-            assert_eq!(
-                lines.get(0).unwrap(),
-                &RespVal::SimpleString(
-                    "(no subcommand) -- Return details about all Redis commands.".into()
-                )
-            );
-        } else {
-            panic!("not an array: {:?}", output);
-        }
+        let output = perform(&request);
+        assert_eq!(&output[..20], "*4\r\n+(no subcommand)");
     }
 
-    #[tokio::test]
-    async fn count() {
+    #[test]
+    fn count() {
         let request = Request::new("command", &["count"]);
-
-        let (mut db, mut response) = setup();
-        call(&mut db, &request, &mut response).unwrap();
-        let output = response.decode().await.unwrap();
-
-        assert_eq!(
-            output,
-            RespVal::Integer(COMMAND_TABLE.len().try_into().unwrap())
-        );
+        let output = perform(&request);
+        let expected = format!(":{}\r\n", COMMAND_TABLE.len());
+        assert_eq!(output, expected);
     }
 
-    // #[tokio::test]
-    // async fn info() {
-    // info
-    // let expected_output = RespVal::Array(Some(vec![
-    //     RespVal::Array(Some(vec![
-    //         RespVal::BulkString(Some("set".into())),
-    //         RespVal::Integer("-3"),
-    //         RespVal::Array(Some(vec![
-    //             RespVal::SimpleString("write"),
-    //             RespVal::SimpleString("denyoom"),
-    //         ])),
-    //         RespVal::Integer("1"),
-    //         RespVal::Integer("1"),
-    //         RespVal::Integer("1"),
-    //     ]),
-    // ]);
-    // let output = call(&["info".into(), "get".into()]).unwrap();
-    // assert_eq!(output, expected_output);
-    // }
-
-    #[tokio::test]
-    async fn default() {
+    #[test]
+    fn default() {
         let request = Request::new("command", &[]);
+        let output = perform(&request);
 
-        let (mut db, mut response) = setup();
-        call(&mut db, &request, &mut response).unwrap();
-        let output = response.decode().await.unwrap();
-
-        if let RespVal::Array(Some(ref replies)) = output {
-            assert_eq!(replies.len(), COMMAND_HELP.len());
-        } else {
-            panic!("not an array: {:?}", output);
-        }
+        let expected_prefix = format!("*{}\r\n", COMMAND_TABLE.len());
+        assert_eq!(&output[..4], expected_prefix);
     }
 
-    #[tokio::test]
-    async fn subcommand() {
+    #[test]
+    fn unknown_subcommand() {
         let request = Request::new("command", &["xyz"]);
+        let output = perform(&request);
 
-        let (mut db, mut response) = setup();
-        call(&mut db, &request, &mut response).unwrap();
-        let output = response.decode().await.unwrap();
-
-        let expected =
-            "ERR Unknown subcommand or wrong number of arguments for 'xyz'. Try COMMAND HELP.";
-        if let RespVal::Error(message) = output {
-            assert_eq!(message, expected);
-        } else {
-            panic!("not an error: {:?}", output);
-        }
+        let expected_prefix = "-ERR Unknown subcommand";
+        assert_eq!(&output[..23], expected_prefix);
     }
 }
