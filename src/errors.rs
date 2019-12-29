@@ -45,12 +45,30 @@ impl PartialEq for Error {
 
 impl From<RespError> for Error {
     fn from(other: RespError) -> Self {
-        Self::Resp(other)
+        match other {
+            RespError::EmptyRequest => Self::EmptyQuery,
+            _ => Self::Resp(other),
+        }
     }
 }
 
 impl From<std::io::Error> for Error {
     fn from(other: std::io::Error) -> Self {
         Self::Io(other)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_from_resp_error() {
+        assert_eq!(
+            Error::from(RespError::InvalidTerminator),
+            Error::Resp(RespError::InvalidTerminator)
+        );
+
+        assert_eq!(Error::from(RespError::EmptyRequest), Error::EmptyQuery,);
     }
 }

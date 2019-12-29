@@ -8,6 +8,7 @@ mod decode2;
 mod errors;
 
 pub use decode::decode;
+pub use decode2::decode as decode2;
 pub use errors::{RespError, RespResult};
 
 const DEPTH_LIMIT: usize = 420; // TODO reduced from 512 to avoid stack overflow in test
