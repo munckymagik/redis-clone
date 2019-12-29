@@ -48,6 +48,7 @@ static COMMAND_TABLE: &[RedisCommand] = &[
 ];
 
 pub fn lookup(name: &str) -> Option<&RedisCommand> {
+    let name = name.to_lowercase();
     COMMAND_TABLE.iter().find(|c| c.name == name)
 }
 
@@ -58,6 +59,7 @@ mod tests {
     #[test]
     fn test_lookup() {
         assert!(lookup("get").is_some());
+        assert!(lookup("GET").is_some());
         assert!(lookup("xxx").is_none());
     }
 }

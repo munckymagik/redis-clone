@@ -1,7 +1,7 @@
 use std::error::Error as StdError;
 use std::fmt::{self, Display};
 
-pub type BoxedError = Box<dyn StdError>;
+pub type BoxedError = Box<dyn StdError + Send + Sync + 'static>;
 pub type RespResult<T> = std::result::Result<T, RespError>;
 
 #[derive(Debug)]
@@ -12,7 +12,7 @@ pub enum RespError {
     InvalidArraySize,
     InvalidBulkStringSize,
     InvalidTerminator,
-    UnsupportedSymbol,
+    UnsupportedSymbol(char),
     Message(String),
     BoxedError(BoxedError),
 }
@@ -35,7 +35,7 @@ impl Display for RespError {
             Self::InvalidArraySize => write!(f, "InvalidArraySize"),
             Self::InvalidBulkStringSize => write!(f, "InvalidBulkStringSize"),
             Self::InvalidTerminator => write!(f, "InvalidTerminator"),
-            Self::UnsupportedSymbol => write!(f, "UnsupportedSymbol"),
+            Self::UnsupportedSymbol(c) => write!(f, "UnsupportedSymbol: {}", c),
             Self::Message(msg) => write!(f, "{}", msg),
             Self::BoxedError(other) => write!(f, "{}", other),
         }
@@ -51,7 +51,7 @@ impl PartialEq for RespError {
             (&Self::InvalidArraySize, &Self::InvalidArraySize) => true,
             (&Self::InvalidBulkStringSize, &Self::InvalidBulkStringSize) => true,
             (&Self::InvalidTerminator, &Self::InvalidTerminator) => true,
-            (&Self::UnsupportedSymbol, &Self::UnsupportedSymbol) => true,
+            (&Self::UnsupportedSymbol(ref a), &Self::UnsupportedSymbol(ref b)) => a == b,
             (&Self::Message(ref a), &Self::Message(ref b)) => a == b,
             _ => false,
         }

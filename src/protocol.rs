@@ -9,7 +9,7 @@ mod errors;
 pub use decode::decode;
 pub use errors::{RespError, RespResult};
 
-const DEPTH_LIMIT: usize = 512;
+const DEPTH_LIMIT: usize = 420; // TODO reduced from 512 to avoid stack overflow in test
 const MAX_ARRAY_SIZE: usize = 1024 * 1024;
 const MAX_BULK_STR_SIZE: usize = 512 * 1024 * 1024;
 const MAX_LINE_LENGTH: usize = 64 * 1024;
@@ -57,7 +57,7 @@ impl TryFrom<u8> for RespSym {
             v if v == Integer.as_u8() => Ok(Integer),
             v if v == BulkString.as_u8() => Ok(BulkString),
             v if v == Array.as_u8() => Ok(Array),
-            _ => Err(RespError::UnsupportedSymbol),
+            v => Err(RespError::UnsupportedSymbol(v.into())),
         }
     }
 }
@@ -75,7 +75,7 @@ mod test {
         assert_eq!(RespSym::try_from(b'*').unwrap(), RespSym::Array);
         assert_eq!(
             RespSym::try_from(b'0').unwrap_err(),
-            RespError::UnsupportedSymbol
+            RespError::UnsupportedSymbol('0')
         );
 
         assert_eq!(RespSym::Array.as_u8(), b'*');

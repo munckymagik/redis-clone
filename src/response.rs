@@ -7,6 +7,7 @@ use crate::{
     protocol::{self, RespVal},
 };
 
+#[derive(Debug)]
 pub struct Response {
     lines: Vec<String>,
 }
@@ -54,9 +55,11 @@ impl Response {
     }
 
     #[cfg(test)]
-    pub fn decode(&self) -> Result<RespVal> {
+    pub async fn decode(&self) -> Result<RespVal> {
         let bytes = self.as_bytes();
-        protocol::decode(bytes.as_slice()).map_err(|e| Error::from(e))
+        protocol::decode(bytes.as_slice())
+            .await
+            .map_err(|e| Error::from(e))
     }
 }
 

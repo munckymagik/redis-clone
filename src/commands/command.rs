@@ -1,8 +1,6 @@
-use std::convert::TryInto;
-
-use crate::{db::Database, errors::Result, request::Request, response::Response};
-
 use super::COMMAND_TABLE;
+use crate::{db::Database, errors::Result, request::Request, response::Response};
+use std::convert::TryInto;
 
 pub(crate) fn call(_: &mut Database, req: &Request, reply: &mut Response) -> Result<()> {
     match req.arg(0) {
@@ -47,14 +45,20 @@ const COMMAND_HELP: &[&str] = &[
 mod tests {
     use super::*;
     use crate::protocol::RespVal;
+    use tokio;
 
-    #[test]
-    fn help() {
-        let mut db = Database::new();
+    fn setup() -> (Database, Response) {
+        (Database::new(), Response::new())
+    }
+
+    #[tokio::test]
+    async fn help() {
         let request = Request::new("command", &["help"]);
-        let mut response = Response::new();
+
+        let (mut db, mut response) = setup();
         call(&mut db, &request, &mut response).unwrap();
-        let output = response.decode().unwrap();
+        let output = response.decode().await.unwrap();
+
         if let RespVal::Array(Some(ref lines)) = output {
             assert_eq!(lines.len(), COMMAND_HELP.len());
             assert_eq!(
@@ -68,46 +72,48 @@ mod tests {
         }
     }
 
-    #[test]
-    fn count() {
-        let mut db = Database::new();
+    #[tokio::test]
+    async fn count() {
         let request = Request::new("command", &["count"]);
-        let mut response = Response::new();
+
+        let (mut db, mut response) = setup();
         call(&mut db, &request, &mut response).unwrap();
-        let output = response.decode().unwrap();
+        let output = response.decode().await.unwrap();
+
         assert_eq!(
             output,
             RespVal::Integer(COMMAND_TABLE.len().try_into().unwrap())
         );
     }
 
-    #[test]
-    fn info() {
-        // info
-        // let expected_output = RespVal::Array(Some(vec![
-        //     RespVal::Array(Some(vec![
-        //         RespVal::BulkString(Some("set".into())),
-        //         RespVal::Integer("-3"),
-        //         RespVal::Array(Some(vec![
-        //             RespVal::SimpleString("write"),
-        //             RespVal::SimpleString("denyoom"),
-        //         ])),
-        //         RespVal::Integer("1"),
-        //         RespVal::Integer("1"),
-        //         RespVal::Integer("1"),
-        //     ]),
-        // ]);
-        // let output = call(&["info".into(), "get".into()]).unwrap();
-        // assert_eq!(output, expected_output);
-    }
+    // #[tokio::test]
+    // async fn info() {
+    // info
+    // let expected_output = RespVal::Array(Some(vec![
+    //     RespVal::Array(Some(vec![
+    //         RespVal::BulkString(Some("set".into())),
+    //         RespVal::Integer("-3"),
+    //         RespVal::Array(Some(vec![
+    //             RespVal::SimpleString("write"),
+    //             RespVal::SimpleString("denyoom"),
+    //         ])),
+    //         RespVal::Integer("1"),
+    //         RespVal::Integer("1"),
+    //         RespVal::Integer("1"),
+    //     ]),
+    // ]);
+    // let output = call(&["info".into(), "get".into()]).unwrap();
+    // assert_eq!(output, expected_output);
+    // }
 
-    #[test]
-    fn default() {
-        let mut db = Database::new();
+    #[tokio::test]
+    async fn default() {
         let request = Request::new("command", &[]);
-        let mut response = Response::new();
+
+        let (mut db, mut response) = setup();
         call(&mut db, &request, &mut response).unwrap();
-        let output = response.decode().unwrap();
+        let output = response.decode().await.unwrap();
+
         if let RespVal::Array(Some(ref replies)) = output {
             assert_eq!(replies.len(), COMMAND_HELP.len());
         } else {
@@ -115,13 +121,14 @@ mod tests {
         }
     }
 
-    #[test]
-    fn subcommand() {
-        let mut db = Database::new();
+    #[tokio::test]
+    async fn subcommand() {
         let request = Request::new("command", &["xyz"]);
-        let mut response = Response::new();
+
+        let (mut db, mut response) = setup();
         call(&mut db, &request, &mut response).unwrap();
-        let output = response.decode().unwrap();
+        let output = response.decode().await.unwrap();
+
         let expected =
             "ERR Unknown subcommand or wrong number of arguments for 'xyz'. Try COMMAND HELP.";
         if let RespVal::Error(message) = output {
