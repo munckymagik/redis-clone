@@ -6,7 +6,7 @@ use tokio::io::{AsyncBufRead, AsyncBufReadExt, AsyncReadExt};
 
 pub async fn decode<T: AsyncBufRead + Unpin + Send>(
     mut stream: T,
-) -> RespResult<Option<Vec<Option<String>>>> {
+) -> RespResult<Vec<Option<String>>> {
     let (type_sym, value_str) = read_header(&mut stream).await?;
 
     if type_sym != b'*' {
@@ -86,9 +86,10 @@ async fn read_bulk_string(
 async fn read_array(
     stream: &mut (impl AsyncBufRead + Unpin + Send),
     len: i64,
-) -> RespResult<Option<Vec<Option<String>>>> {
-    if len == -1 {
-        return Ok(None);
+) -> RespResult<Vec<Option<String>>> {
+    // We don't need to support empty or null arrays in requests
+    if len == 0 || len == -1 {
+        return Err(RespError::EmptyRequest);
     }
 
     let len = usize::try_from(len).or(Err(RespError::InvalidArraySize))?;
@@ -113,7 +114,7 @@ async fn read_array(
         elements.push(value);
     }
 
-    Ok(Some(elements))
+    Ok(elements)
 }
 
 #[cfg(test)]
@@ -198,14 +199,14 @@ mod test {
     async fn decode_null_array() {
         let input: &[u8] = b"*-1\r\n";
         let result = decode(input);
-        assert_eq!(result.await.unwrap(), None);
+        assert_eq!(result.await.unwrap_err(), RespError::EmptyRequest);
     }
 
     #[tokio::test]
     async fn decode_empty_array() {
         let input: &[u8] = b"*0\r\n";
         let result = decode(input);
-        assert_eq!(result.await.unwrap(), Some(vec![]));
+        assert_eq!(result.await.unwrap_err(), RespError::EmptyRequest);
     }
 
     #[tokio::test]
@@ -214,7 +215,7 @@ mod test {
         let result = decode(input);
         assert_eq!(
             result.await.unwrap(),
-            Some(vec![Some("abc\r\ndef".into()), Some("123".into()),])
+            vec![Some("abc\r\ndef".into()), Some("123".into()),]
         );
     }
 
@@ -229,14 +230,14 @@ mod test {
     async fn decode_empty_bulk_string() {
         let input: &[u8] = b"*1\r\n$0\r\n\r\n";
         let result = decode(input);
-        assert_eq!(result.await.unwrap(), Some(vec![Some("".into())]));
+        assert_eq!(result.await.unwrap(), vec![Some("".into())]);
     }
 
     #[tokio::test]
     async fn decode_null_bulk_string() {
         let input: &[u8] = b"*1\r\n$-1\r\n";
         let result = decode(input);
-        assert_eq!(result.await.unwrap(), Some(vec![None]));
+        assert_eq!(result.await.unwrap(), vec![None]);
     }
 
     #[tokio::test]
