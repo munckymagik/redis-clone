@@ -12,17 +12,9 @@ const COMMAND_HELP: &[&str] = &[
 pub(crate) fn call(_: &mut Database, req: &Request, reply: &mut Response) -> Result<()> {
     match req.arg(0) {
         Some(sub_command) => match sub_command.as_ref() {
-            "help" => {
-                reply.add_reply_help(&req.command, COMMAND_HELP);
-            }
+            "help" => reply.add_reply_help(&req.command, COMMAND_HELP),
             "count" => reply.add_integer(COMMAND_TABLE.len().try_into().unwrap()),
-            _ => {
-                let msg = format!(
-                    "ERR Unknown subcommand or wrong number of arguments for '{}'. Try COMMAND HELP.",
-                    sub_command,
-                );
-                reply.add_error(&msg);
-            }
+            _ => reply.add_reply_subcommand_syntax_error(&req.command, sub_command),
         },
         None => {
             reply.add_array_len(COMMAND_TABLE.len().try_into().unwrap());

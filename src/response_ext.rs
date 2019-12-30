@@ -1,8 +1,11 @@
 use crate::response::Response;
 use std::convert::TryInto;
 
+/// Helpers methods that extend Response with facilities more logically
+/// related to the command interactions than the protocol
 pub trait ResponseExt {
     fn add_reply_help(&mut self, command: &str, help: &[&str]);
+    fn add_reply_subcommand_syntax_error(&mut self, command: &str, sub_command: &str);
 }
 
 impl ResponseExt for Response {
@@ -22,6 +25,18 @@ impl ResponseExt for Response {
             self.add_simple_string(line);
         }
     }
+
+    fn add_reply_subcommand_syntax_error(&mut self, command: &str, sub_command: &str) {
+        let command = command.to_uppercase();
+
+        let message = format!(
+            "ERR Unknown subcommand or wrong number of arguments for '{}'. Try {} HELP.",
+            sub_command,
+            command,
+        );
+
+        self.add_error(&message);
+    }
 }
 
 
@@ -40,6 +55,18 @@ mod test {
                 +CMD <subcommand> arg arg ... arg. Subcommands are:\r\n\
                 +abc\r\n\
                 +xyz\r\n";
+
+        assert_eq!(response.as_string(), expected);
+    }
+
+    #[test]
+    fn test_add_reply_subcommand_syntax_error() {
+        let mut response = Response::new();
+
+        response.add_reply_subcommand_syntax_error("cmd", "xyz");
+
+        let expected =
+            "-ERR Unknown subcommand or wrong number of arguments for 'xyz'. Try CMD HELP.\r\n";
 
         assert_eq!(response.as_string(), expected);
     }
