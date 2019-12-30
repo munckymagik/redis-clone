@@ -64,6 +64,15 @@ impl Response {
     pub fn as_bytes(&self) -> Vec<u8> {
         self.lines.join("").into_bytes()
     }
+
+    #[cfg(test)]
+    pub fn as_string(&self) -> String {
+        let bytes = self.as_bytes();
+
+        std::str::from_utf8(&bytes)
+            .expect("utf8 error")
+            .to_string()
+    }
 }
 
 #[cfg(test)]

@@ -1,15 +1,12 @@
 use super::COMMAND_TABLE;
-use crate::{db::Database, errors::Result, request::Request, response::Response};
+use crate::{db::Database, errors::Result, request::Request, response_ext::ResponseExt, response::Response};
 use std::convert::TryInto;
 
 pub(crate) fn call(_: &mut Database, req: &Request, reply: &mut Response) -> Result<()> {
     match req.arg(0) {
         Some(sub_command) => match sub_command.as_ref() {
             "help" => {
-                reply.add_array_len(COMMAND_HELP.len().try_into().unwrap());
-                for line in COMMAND_HELP {
-                    reply.add_simple_string(line);
-                }
+                reply.add_reply_help(&req.command, COMMAND_HELP);
             }
             "count" => reply.add_integer(COMMAND_TABLE.len().try_into().unwrap()),
             _ => {
@@ -60,7 +57,7 @@ mod tests {
     fn help() {
         let request = Request::new("command", &["help"]);
         let output = perform(&request);
-        assert_eq!(&output[..20], "*4\r\n+(no subcommand)");
+        assert_eq!(&output[..12], "*5\r\n+COMMAND");
     }
 
     #[test]

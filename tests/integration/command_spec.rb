@@ -11,10 +11,14 @@ RSpec.describe "COMMAND", include_connection: true do
   describe "HELP" do
     it "returns the help string" do
       output = redis.command("help")
-      expect(output[0]).to match(/^\(no subcommand\)/)
-      expect(output[1]).to match(/^COUNT/)
-      expect(output[2]).to match(/^GETKEYS/)
-      expect(output[3]).to match(/^INFO/)
+      expect(output.count).to eql(5)
+      expect(output[0]).to eql(
+        "COMMAND <subcommand> arg arg ... arg. Subcommands are:"
+      )
+      expect(output[1]).to match(/^\(no subcommand\)/)
+      expect(output[2]).to match(/^COUNT/)
+      expect(output[3]).to match(/^GETKEYS/)
+      expect(output[4]).to match(/^INFO/)
     end
   end
 

@@ -6,3 +6,4 @@ mod errors;
 mod protocol;
 mod request;
 mod response;
+mod response_ext;
