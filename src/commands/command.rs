@@ -1,5 +1,7 @@
 use super::COMMAND_TABLE;
-use crate::{db::Database, errors::Result, request::Request, response_ext::ResponseExt, response::Response};
+use crate::{
+    db::Database, errors::Result, request::Request, response::Response, response_ext::ResponseExt,
+};
 use std::convert::TryInto;
 
 const COMMAND_HELP: &[&str] = &[

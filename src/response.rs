@@ -69,9 +69,7 @@ impl Response {
     pub fn as_string(&self) -> String {
         let bytes = self.as_bytes();
 
-        std::str::from_utf8(&bytes)
-            .expect("utf8 error")
-            .to_string()
+        std::str::from_utf8(&bytes).expect("utf8 error").to_string()
     }
 }
 

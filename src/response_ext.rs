@@ -14,10 +14,7 @@ impl ResponseExt for Response {
 
         let command = command.to_uppercase();
 
-        let lead = format!(
-            "{} <subcommand> arg arg ... arg. Subcommands are:",
-            command,
-        );
+        let lead = format!("{} <subcommand> arg arg ... arg. Subcommands are:", command,);
 
         self.add_simple_string(&lead);
 
@@ -31,14 +28,12 @@ impl ResponseExt for Response {
 
         let message = format!(
             "ERR Unknown subcommand or wrong number of arguments for '{}'. Try {} HELP.",
-            sub_command,
-            command,
+            sub_command, command,
         );
 
         self.add_error(&message);
     }
 }
-
 
 #[cfg(test)]
 mod test {
@@ -51,10 +46,10 @@ mod test {
         response.add_reply_help("cmd", &["abc", "xyz"]);
 
         let expected = "\
-                *3\r\n\
-                +CMD <subcommand> arg arg ... arg. Subcommands are:\r\n\
-                +abc\r\n\
-                +xyz\r\n";
+                        *3\r\n\
+                        +CMD <subcommand> arg arg ... arg. Subcommands are:\r\n\
+                        +abc\r\n\
+                        +xyz\r\n";
 
         assert_eq!(response.as_string(), expected);
     }
