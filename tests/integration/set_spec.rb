@@ -1,6 +1,4 @@
-RSpec.describe "SET" do
-  let(:redis) { Redis.new(port: 8080) }
-
+RSpec.describe "SET", include_connection: true do
   it "sets a key and value" do
     reply = redis.set("x", "123")
     expect(reply).to eql("OK")
