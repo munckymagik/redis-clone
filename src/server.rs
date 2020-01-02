@@ -44,7 +44,7 @@ fn start_api(mut db: Database) -> Sender<Message> {
 
             if let Some(cmd) = commands::lookup(&request.command) {
                 if let Err(e) = cmd.execute(&mut db, &request, &mut response) {
-                    let msg = format!("Error from command {}: {:?}", request.command, e);
+                    let msg = format!("ERR {}", e);
                     error!("{}", msg);
                     response.add_error(&msg);
                 }

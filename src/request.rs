@@ -2,7 +2,7 @@ use crate::{
     errors::{Error, Result},
     protocol,
 };
-use std::convert::TryFrom;
+use std::convert::{TryFrom, TryInto};
 use std::marker::Unpin;
 use tokio::io::AsyncBufRead;
 
@@ -20,6 +20,10 @@ pub struct Request {
 impl Request {
     pub fn arg(&self, index: usize) -> Option<&String> {
         self.argv.get(index)
+    }
+
+    pub fn arity(&self) -> i64 {
+        (1 + self.argv.len()).try_into().unwrap()
     }
 
     pub fn arguments(&self) -> &[String] {
@@ -91,5 +95,15 @@ mod tests {
 
         // Note: final comma is for consistency with real Redis
         assert_eq!(request.argv_to_string(), "`1`, `2`, `3`,");
+    }
+
+    #[test]
+    fn test_arity() {
+        let request = Request {
+            command: "xxx".to_owned(),
+            argv: vec!["1".to_owned(), "2".to_owned(), "3".to_owned()],
+        };
+
+        assert_eq!(request.arity(), 4);
     }
 }

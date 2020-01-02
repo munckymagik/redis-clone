@@ -7,6 +7,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 #[derive(Debug)]
 pub enum Error {
     EmptyRequest,
+    MissingArguments(String),
     UnimplementedCommand,
     UnsupportedRequestType,
     ProtocolError,
@@ -20,6 +21,9 @@ impl Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Self::EmptyRequest => write!(f, "Empty query"),
+            Self::MissingArguments(ref cmd) => {
+                write!(f, "wrong number of arguments for '{}' command", cmd)
+            }
             Self::UnimplementedCommand => write!(f, "Unimplemented command"),
             Self::UnsupportedRequestType => write!(f, "Unsupported request type"),
             Self::ProtocolError => write!(f, "Protocol error: expected '$', got something else"),
@@ -33,6 +37,7 @@ impl PartialEq for Error {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
             (&Self::EmptyRequest, &Self::EmptyRequest) => true,
+            (&Self::MissingArguments(ref a), &Self::MissingArguments(ref b)) => a == b,
             (&Self::UnimplementedCommand, &Self::UnimplementedCommand) => true,
             (&Self::UnsupportedRequestType, &Self::UnsupportedRequestType) => true,
             (&Self::ProtocolError, &Self::ProtocolError) => true,
