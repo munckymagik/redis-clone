@@ -37,9 +37,28 @@ RSpec.describe "COMMAND", include_connection: true do
   end
 
   describe "INFO" do
-    it do
-      pending "not implemented yet"
-      fail
+    it "returns the requested subset of supported commands" do
+      requested = %w[set get]
+      output = redis.command("info", "set", "get")
+      expect(output.count).to eql(2)
+      expect(output[0].first).to eql("set")
+      expect(output[1].first).to eql("get")
+    end
+
+    context "when given no arguments" do
+      it "returns an empty array" do
+        output = redis.command("info")
+        expect(output).to be_empty
+      end
+    end
+
+    context "when a non-existent command is requested" do
+      it "returns an null array for the unrecognised command" do
+        output = redis.command("info", "xxx", "set")
+        expect(output.count).to eql(2)
+        expect(output[0]).to be_nil
+        expect(output[1].first).to eql("set")
+      end
     end
   end
 

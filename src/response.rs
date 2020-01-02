@@ -32,6 +32,10 @@ impl Response {
         self.add(Array, len);
     }
 
+    pub fn add_null_array(&mut self) {
+        self.add(Array, -1i64);
+    }
+
     pub fn add_simple_string(&mut self, value: &str) {
         self.add(SimpleString, value);
     }
@@ -121,6 +125,13 @@ mod test {
             $5\r\n\
             x\ny\nz\r\n";
         assert_eq!(builder.as_bytes(), expected);
+    }
+
+    #[test]
+    fn test_null_array() {
+        let mut builder = Response::new();
+        builder.add_null_array();
+        assert_eq!(builder.as_bytes(), b"*-1\r\n");
     }
 
     #[test]

@@ -22,6 +22,10 @@ impl Request {
         self.argv.get(index)
     }
 
+    pub fn arguments(&self) -> &[String] {
+        &self.argv
+    }
+
     pub fn argv_to_string(&self) -> String {
         self.argv
             .iter()
