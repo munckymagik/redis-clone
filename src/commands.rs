@@ -27,14 +27,16 @@ impl RedisCommand<'_> {
     }
 
     fn validate_arity(&self, request: &Request) -> Result<()> {
-        if (self.arity > 0 && request.arity() == self.arity.into())
-            || request.arity() >= self.arity.abs().into()
-        {
+        if is_valid_arity(self.arity.into(), request.arity()) {
             Ok(())
         } else {
             Err(Error::MissingArguments(request.command.to_owned()))
         }
     }
+}
+
+fn is_valid_arity(arity: i64, given: i64) -> bool {
+    arity == given || (arity < 0 && given >= arity.abs())
 }
 
 static COMMAND_TABLE: &[RedisCommand] = &[
@@ -79,5 +81,16 @@ mod tests {
         assert!(lookup("get").is_some());
         assert!(lookup("GET").is_some());
         assert!(lookup("xxx").is_none());
+    }
+
+    #[test]
+    fn test_is_valid_arity() {
+        assert!(is_valid_arity(2, 2));
+        assert!(!is_valid_arity(2, 1));
+        assert!(!is_valid_arity(2, 3));
+
+        assert!(is_valid_arity(-2, 2));
+        assert!(!is_valid_arity(-2, 1));
+        assert!(is_valid_arity(-2, 3));
     }
 }
