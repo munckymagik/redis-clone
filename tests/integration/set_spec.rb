@@ -1,4 +1,16 @@
 RSpec.describe "SET", include_connection: true do
+  it 'expects at least 2 arguments' do
+    expect(redis.command("info", "set")[0][1]).to eql(-3)
+
+    expect { redis.call("set") }.to raise_error(
+      "ERR wrong number of arguments for 'set' command"
+    )
+    expect { redis.call("set", "x") }.to raise_error(
+      "ERR wrong number of arguments for 'set' command"
+    )
+    expect { redis.call("set", "x", "y") }.not_to raise_error
+  end
+
   context "when the key does not exist" do
     it "sets the key to hold the string value" do
       expect(redis.get("x")).to be_nil
