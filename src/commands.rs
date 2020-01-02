@@ -2,6 +2,7 @@ use crate::{db::Database, errors::Error, errors::Result, request::Request, respo
 
 mod command;
 mod del;
+mod exists;
 mod flushdb;
 mod get;
 mod set;
@@ -59,6 +60,11 @@ static COMMAND_TABLE: &[RedisCommand] = &[
         name: "command",
         handler: command::call,
         arity: -1,
+    },
+    RedisCommand {
+        name: "exists",
+        handler: exists::call,
+        arity: -2,
     },
     RedisCommand {
         name: "flushdb",
