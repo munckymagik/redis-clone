@@ -6,15 +6,15 @@ use tokio::{
     stream::StreamExt,
     sync::mpsc::{self, Sender},
 };
-
 use crate::{
-    commands,
+    commands::{self, RedisCommand},
     db::Database,
     errors::{Error, Result},
     protocol::ProtoError,
     request::{self, Request},
     response::Response,
 };
+use std::panic::{AssertUnwindSafe, catch_unwind};
 
 #[derive(Debug)]
 struct Message {
@@ -43,10 +43,7 @@ fn start_api(mut db: Database) -> Sender<Message> {
             let mut response = Response::new();
 
             if let Some(cmd) = commands::lookup(&request.command) {
-                if let Err(e) = cmd.execute(&mut db, &request, &mut response) {
-                    error!("{}", e);
-                    response.add_error("ERR server error");
-                }
+                api_handle_command(cmd, &mut db, &request, &mut response);
             } else {
                 let msg = format!(
                     "ERR unknown command `{}`, with args beginning with: {}",
@@ -61,9 +58,37 @@ fn start_api(mut db: Database) -> Sender<Message> {
                 error!("Client receiver has gone: {:?}", e);
             }
         }
+
     });
 
     sender
+}
+
+fn api_handle_command(cmd: &RedisCommand, db: &mut Database, request: &Request, response: &mut Response) {
+    let result = catch_unwind(AssertUnwindSafe(|| {
+        cmd.execute(db, request, response)
+    }));
+
+    match result {
+        Ok(Err(e)) => {
+            error!(
+                "ERROR handling command `{}` with args {}: '{}'",
+                cmd.name,
+                request.argv_to_string(),
+                e
+            );
+            response.add_error("ERR server error");
+        }
+        Err(_) => {
+            error!(
+                "PANIC handling command `{}` with args {}",
+                cmd.name,
+                request.argv_to_string(),
+            );
+            response.add_error("ERR server error");
+        }
+        _ => (),
+    }
 }
 
 async fn start_network(api: Sender<Message>, address: &str) -> Result<()> {
