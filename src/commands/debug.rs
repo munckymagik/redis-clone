@@ -3,6 +3,7 @@ use crate::{
 };
 
 const COMMAND_HELP: &[&str] = &[
+    "PANIC -- Crash the server simulating a panic.",
     "_CMD_ERROR -- Simulate an error.",
 ];
 
@@ -11,6 +12,7 @@ pub(crate) fn call(_: &mut Database, req: &Request, reply: &mut Response) -> Res
 
     match sub_command.as_ref() {
         "help" => reply.add_reply_help(&req.command, COMMAND_HELP),
+        "panic" => panic!("A deliberate panic from DEBUG PANIC"),
         "_cmd_error" => {
             return Err(Error::from("A deliberate error from DEBUG _CMD_ERROR"));
         },
