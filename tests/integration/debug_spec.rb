@@ -16,4 +16,18 @@ RSpec.describe "DEBUG", include_connection: true do
       )
     end
   end
+
+  describe "_CMD_ERROR" do
+    it "reports a server error" do
+      expect { redis.debug("_cmd_error") }
+        .to raise_error("ERR server error")
+    end
+  end
+
+  describe "PANIC" do
+    it "reports a server error" do
+      expect { redis.debug("panic") }
+        .to raise_error("ERR server error")
+    end
+  end
 end
