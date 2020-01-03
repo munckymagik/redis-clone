@@ -1,4 +1,4 @@
-use log::{debug, error, info, warn};
+use log::{debug, error, info};
 use tokio::{
     io::{AsyncWriteExt, BufReader},
     net::{TcpListener, TcpStream},
@@ -50,7 +50,6 @@ fn start_api(mut db: Database) -> Sender<Message> {
                     request.command,
                     request.argv_to_string()
                 );
-                warn!("{}", msg);
                 response.add_error(&msg);
             }
 
