@@ -118,8 +118,8 @@ async fn handle_client(mut stream: TcpStream, mut api: Sender<Message>) -> Resul
         };
 
         if let Err(e) = api.send(message).await {
-            error!("Api receiver gone: {:?}", e);
-            break;
+            let msg = format!("Api receiver has gone: {}", e);
+            return Err(msg.into());
         }
 
         match response_receiver.next().await {
