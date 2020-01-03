@@ -9,6 +9,7 @@ pub enum Error {
     EmptyRequest,
     UnimplementedCommand,
     UnsupportedRequestType,
+    Message(String),
     ProtocolError,
     Proto(ProtoError),
     Io(std::io::Error),
@@ -22,6 +23,7 @@ impl Display for Error {
             Self::EmptyRequest => write!(f, "Empty query"),
             Self::UnimplementedCommand => write!(f, "Unimplemented command"),
             Self::UnsupportedRequestType => write!(f, "Unsupported request type"),
+            Self::Message(ref msg) => write!(f, "{}", msg),
             Self::ProtocolError => write!(f, "Protocol error: expected '$', got something else"),
             Self::Proto(ref source) => write!(f, "{}", source),
             Self::Io(ref source) => write!(f, "{}", source),
@@ -35,6 +37,7 @@ impl PartialEq for Error {
             (&Self::EmptyRequest, &Self::EmptyRequest) => true,
             (&Self::UnimplementedCommand, &Self::UnimplementedCommand) => true,
             (&Self::UnsupportedRequestType, &Self::UnsupportedRequestType) => true,
+            (&Self::Message(ref a), &Self::Message(ref b)) => a == b,
             (&Self::ProtocolError, &Self::ProtocolError) => true,
             (&Self::Proto(ref a), &Self::Proto(ref b)) => a == b,
             (&Self::Io(_), &Self::Io(_)) => false, // cannot be compared
@@ -55,6 +58,12 @@ impl From<ProtoError> for Error {
 impl From<std::io::Error> for Error {
     fn from(other: std::io::Error) -> Self {
         Self::Io(other)
+    }
+}
+
+impl From<&str> for Error {
+    fn from(other: &str) -> Self {
+        Self::Message(other.to_owned())
     }
 }
 

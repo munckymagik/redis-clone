@@ -1,6 +1,7 @@
 use crate::{db::Database, errors::Result, request::Request, response::Response, response_ext::ResponseExt};
 
 mod command;
+mod debug;
 mod del;
 mod exists;
 mod flushdb;
@@ -29,7 +30,7 @@ impl RedisCommand<'_> {
 
         (self.handler)(db, request, response)
     }
-        }
+}
 
 fn is_valid_arity(arity: i64, given: i64) -> bool {
     arity == given || (arity < 0 && given >= arity.abs())
@@ -55,6 +56,11 @@ static COMMAND_TABLE: &[RedisCommand] = &[
         name: "command",
         handler: command::call,
         arity: -1,
+    },
+    RedisCommand {
+        name: "debug",
+        handler: debug::call,
+        arity: -2,
     },
     RedisCommand {
         name: "exists",
