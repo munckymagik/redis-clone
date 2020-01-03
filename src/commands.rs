@@ -1,4 +1,4 @@
-use crate::{db::Database, errors::Error, errors::Result, request::Request, response::Response};
+use crate::{db::Database, errors::Result, request::Request, response::Response, response_ext::ResponseExt};
 
 mod command;
 mod del;
@@ -22,19 +22,14 @@ impl RedisCommand<'_> {
         request: &Request,
         response: &mut Response,
     ) -> Result<()> {
-        self.validate_arity(request)?;
+        if !is_valid_arity(self.arity.into(), request.arity()) {
+            response.add_reply_wrong_number_of_arguments(&request.command);
+            return Ok(());
+        }
 
         (self.handler)(db, request, response)
     }
-
-    fn validate_arity(&self, request: &Request) -> Result<()> {
-        if is_valid_arity(self.arity.into(), request.arity()) {
-            Ok(())
-        } else {
-            Err(Error::MissingArguments(request.command.to_owned()))
         }
-    }
-}
 
 fn is_valid_arity(arity: i64, given: i64) -> bool {
     arity == given || (arity < 0 && given >= arity.abs())
