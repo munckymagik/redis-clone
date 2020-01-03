@@ -63,7 +63,13 @@ impl From<std::io::Error> for Error {
 
 impl From<&str> for Error {
     fn from(other: &str) -> Self {
-        Self::Message(other.to_owned())
+        Self::from(other.to_owned())
+    }
+}
+
+impl From<String> for Error {
+    fn from(other: String) -> Self {
+        Self::Message(other)
     }
 }
 
