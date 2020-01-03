@@ -13,13 +13,11 @@ pub(crate) fn call(db: &mut Database, request: &Request, response: &mut Response
             _ => {
                 response.add_error("ERR syntax error");
                 return Ok(());
-            },
+            }
         }
     }
 
-    if nx && db.contains_key(key)
-        || xx && !db.contains_key(key)
-    {
+    if nx && db.contains_key(key) || xx && !db.contains_key(key) {
         response.add_null_string();
         return Ok(());
     }

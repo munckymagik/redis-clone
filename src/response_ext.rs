@@ -37,10 +37,7 @@ impl ResponseExt for Response {
 
     fn add_reply_wrong_number_of_arguments(&mut self, command: &str) {
         let command = command.to_lowercase();
-        let message = format!(
-            "ERR wrong number of arguments for '{}' command",
-            command,
-        );
+        let message = format!("ERR wrong number of arguments for '{}' command", command,);
 
         self.add_error(&message);
     }

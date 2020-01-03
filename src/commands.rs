@@ -1,4 +1,6 @@
-use crate::{db::Database, errors::Result, request::Request, response::Response, response_ext::ResponseExt};
+use crate::{
+    db::Database, errors::Result, request::Request, response::Response, response_ext::ResponseExt,
+};
 
 mod command;
 mod debug;

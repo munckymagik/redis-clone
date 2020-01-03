@@ -1,5 +1,6 @@
 use crate::{
-    db::Database, errors::Result, errors::Error, request::Request, response::Response, response_ext::ResponseExt,
+    db::Database, errors::Error, errors::Result, request::Request, response::Response,
+    response_ext::ResponseExt,
 };
 
 const COMMAND_HELP: &[&str] = &[
@@ -15,7 +16,7 @@ pub(crate) fn call(_: &mut Database, req: &Request, reply: &mut Response) -> Res
         "panic" => panic!("A deliberate panic from DEBUG PANIC"),
         "error" => {
             return Err(Error::from("A deliberate error from DEBUG ERROR"));
-        },
+        }
         _ => reply.add_reply_subcommand_syntax_error(&req.command, &sub_command),
     };
 

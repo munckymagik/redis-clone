@@ -1,11 +1,3 @@
-use log::{debug, error, info};
-use tokio::{
-    io::{AsyncWriteExt, BufReader},
-    net::{TcpListener, TcpStream},
-    runtime::Runtime,
-    stream::StreamExt,
-    sync::mpsc::{self, Sender},
-};
 use crate::{
     commands::{self, RedisCommand},
     db::Database,
@@ -14,7 +6,15 @@ use crate::{
     request::{self, Request},
     response::Response,
 };
-use std::panic::{AssertUnwindSafe, catch_unwind};
+use log::{debug, error, info};
+use std::panic::{catch_unwind, AssertUnwindSafe};
+use tokio::{
+    io::{AsyncWriteExt, BufReader},
+    net::{TcpListener, TcpStream},
+    runtime::Runtime,
+    stream::StreamExt,
+    sync::mpsc::{self, Sender},
+};
 
 #[derive(Debug)]
 struct Message {
@@ -57,16 +57,18 @@ fn start_api(mut db: Database) -> Sender<Message> {
                 error!("Client receiver has gone: {:?}", e);
             }
         }
-
     });
 
     sender
 }
 
-fn api_handle_command(cmd: &RedisCommand, db: &mut Database, request: &Request, response: &mut Response) {
-    let result = catch_unwind(AssertUnwindSafe(|| {
-        cmd.execute(db, request, response)
-    }));
+fn api_handle_command(
+    cmd: &RedisCommand,
+    db: &mut Database,
+    request: &Request,
+    response: &mut Response,
+) {
+    let result = catch_unwind(AssertUnwindSafe(|| cmd.execute(db, request, response)));
 
     match result {
         Ok(Err(e)) => {
