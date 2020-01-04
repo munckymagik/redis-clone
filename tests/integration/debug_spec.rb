@@ -1,4 +1,4 @@
-RSpec.describe "DEBUG", include_connection: true do
+RSpec.describe "DEBUG", include_connection: true, redis_clone_only: true do
   it 'expects at least one argument' do
     expect(redis.command("info", "debug")[0][1]).to eql(-2)
 

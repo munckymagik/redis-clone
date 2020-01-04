@@ -1,6 +1,10 @@
+def using_real_redis?
+  ENV.key? 'TEST_REAL_REDIS'
+end
+
 RSpec.shared_context "Redis connection" do
   let(:port) do
-    if ENV.key? 'TEST_REAL_REDIS'
+    if using_real_redis?
       6379
     else
       8080
@@ -18,12 +22,15 @@ end
 RSpec.configure do |rspec|
   rspec.include_context "Redis connection", :include_connection => true
 
-  rspec.after(:suite) do
-    if ENV.key? 'TEST_REAL_REDIS'
+  if using_real_redis?
+    rspec.filter_run_excluding redis_clone_only: true
+
+    rspec.after(:suite) do
       puts
       puts "XXXX -------------------------------------------------------------"
       puts "XXXX tests were ran against the real Redis"
       puts "XXXX -------------------------------------------------------------"
     end
   end
+
 end
