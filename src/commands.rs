@@ -8,7 +8,7 @@ mod del;
 mod exists;
 mod flushdb;
 mod get;
-mod incr;
+mod incr_decr;
 mod set;
 
 type RedisCommandProc = fn(db: &mut Database, req: &Request, resp: &mut Response) -> Result<()>;
@@ -72,7 +72,12 @@ static COMMAND_TABLE: &[RedisCommand] = &[
     },
     RedisCommand {
         name: "incr",
-        handler: incr::call,
+        handler: incr_decr::incr,
+        arity: 2,
+    },
+    RedisCommand {
+        name: "decr",
+        handler: incr_decr::decr,
         arity: 2,
     },
     RedisCommand {

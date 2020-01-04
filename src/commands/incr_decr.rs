@@ -1,6 +1,19 @@
 use crate::{db::Database, errors::Result, request::Request, response::Response};
 
-pub(crate) fn call(db: &mut Database, request: &Request, response: &mut Response) -> Result<()> {
+pub(crate) fn incr(db: &mut Database, request: &Request, response: &mut Response) -> Result<()> {
+    incr_decr(db, request, response, 1)
+}
+
+pub(crate) fn decr(db: &mut Database, request: &Request, response: &mut Response) -> Result<()> {
+    incr_decr(db, request, response, -1)
+}
+
+fn incr_decr(
+    db: &mut Database,
+    request: &Request,
+    response: &mut Response,
+    increment: i64,
+) -> Result<()> {
     let key = request.arg(0).unwrap();
 
     if db.contains_key(key) {
@@ -14,15 +27,15 @@ pub(crate) fn call(db: &mut Database, request: &Request, response: &mut Response
             }
         };
 
-        if let Some(value) = value.checked_add(1) {
+        if let Some(value) = value.checked_add(increment) {
             db.insert(key.to_string(), value.to_string());
             response.add_integer(value);
         } else {
             response.add_error("ERR increment or decrement would overflow")
         }
     } else {
-        db.insert(key.to_string(), 1.to_string());
-        response.add_integer(1);
+        db.insert(key.to_string(), increment.to_string());
+        response.add_integer(increment);
     }
 
     Ok(())
