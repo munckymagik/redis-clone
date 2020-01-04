@@ -31,7 +31,7 @@ RSpec.describe "INCR", include_connection: true do
   end
 
   context "if value is INCR beyond i64 max" do
-    it "replies with an error" do
+    it "returns an error" do
       redis.set("x", "9223372036854775807")
       expect { redis.incr("x") }
         .to raise_error("ERR increment or decrement would overflow")

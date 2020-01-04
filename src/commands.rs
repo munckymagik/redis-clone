@@ -81,6 +81,11 @@ static COMMAND_TABLE: &[RedisCommand] = &[
         arity: 2,
     },
     RedisCommand {
+        name: "incrby",
+        handler: incr_decr::incrby,
+        arity: 3,
+    },
+    RedisCommand {
         name: "flushdb",
         handler: flushdb::call,
         arity: -1,
