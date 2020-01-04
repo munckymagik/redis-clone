@@ -13,7 +13,7 @@ const COMMAND_HELP: &[&str] = &[
 
 pub(crate) fn call(_: &mut Database, req: &Request, reply: &mut Response) -> Result<()> {
     match req.arg(0) {
-        Some(sub_command) => match sub_command.as_ref() {
+        Some(sub_command) => match sub_command.to_lowercase().as_ref() {
             "help" => reply.add_reply_help(&req.command, COMMAND_HELP),
             "count" => reply.add_integer(COMMAND_TABLE.len().try_into().unwrap()),
             "info" => {
