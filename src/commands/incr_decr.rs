@@ -4,8 +4,14 @@ pub(crate) fn incr(db: &mut Database, request: &Request, response: &mut Response
     incr_decr(db, request, response, 1)
 }
 
+pub(crate) fn decr(db: &mut Database, request: &Request, response: &mut Response) -> Result<()> {
+    incr_decr(db, request, response, -1)
+}
+
 pub(crate) fn incrby(db: &mut Database, request: &Request, response: &mut Response) -> Result<()> {
-    if let Some(increment) = parse_i64_or_reply_with_error(response, &request.arg(1).unwrap()) {
+    let arg = request.arg(1).unwrap();
+
+    if let Some(increment) = parse_i64_or_reply_with_error(response, &arg) {
         return incr_decr(db, request, response, increment);
     }
 
@@ -13,15 +19,13 @@ pub(crate) fn incrby(db: &mut Database, request: &Request, response: &mut Respon
 }
 
 pub(crate) fn decrby(db: &mut Database, request: &Request, response: &mut Response) -> Result<()> {
-    if let Some(increment) = parse_i64_or_reply_with_error(response, &request.arg(1).unwrap()) {
+    let arg = request.arg(1).unwrap();
+
+    if let Some(increment) = parse_i64_or_reply_with_error(response, &arg) {
         return incr_decr(db, request, response, -increment);
     }
 
     Ok(())
-}
-
-pub(crate) fn decr(db: &mut Database, request: &Request, response: &mut Response) -> Result<()> {
-    incr_decr(db, request, response, -1)
 }
 
 fn incr_decr(
