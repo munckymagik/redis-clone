@@ -22,7 +22,7 @@ pub(crate) fn call(db: &mut Database, request: &Request, response: &mut Response
         return Ok(());
     }
 
-    db.insert(key.to_owned(), value.to_owned());
+    db.insert(key.to_owned(), value.to_owned().into());
     response.add_simple_string("OK");
 
     Ok(())
