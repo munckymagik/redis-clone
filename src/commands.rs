@@ -10,6 +10,7 @@ mod flushdb;
 mod get;
 mod incr_decr;
 mod keys;
+mod list_type;
 mod set;
 
 type RedisCommandProc = fn(db: &mut Database, req: &Request, resp: &mut Response) -> Result<()>;
@@ -90,6 +91,16 @@ static COMMAND_TABLE: &[RedisCommand] = &[
         name: "decrby",
         handler: incr_decr::decrby,
         arity: 3,
+    },
+    RedisCommand {
+        name: "llen",
+        handler: list_type::llen,
+        arity: 2,
+    },
+    RedisCommand {
+        name: "lpush",
+        handler: list_type::lpush,
+        arity: -3,
     },
     RedisCommand {
         name: "flushdb",
