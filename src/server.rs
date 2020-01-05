@@ -7,10 +7,13 @@ use crate::{
     response::Response,
 };
 use log::{debug, error, info};
-use std::panic::{catch_unwind, AssertUnwindSafe};
+use std::{
+    fmt::Debug,
+    panic::{catch_unwind, AssertUnwindSafe},
+};
 use tokio::{
     io::{AsyncWriteExt, BufReader},
-    net::{TcpListener, TcpStream},
+    net::{TcpListener, TcpStream, ToSocketAddrs},
     runtime::Runtime,
     stream::StreamExt,
     sync::mpsc::{self, Sender},
@@ -22,9 +25,8 @@ struct Message {
     response_sender: Sender<Response>,
 }
 
-pub fn serve() -> Result<()> {
+pub fn serve(address: impl ToSocketAddrs + Debug) -> Result<()> {
     let db = Database::new();
-    let address = "127.0.0.1:8080";
 
     let mut rt = Runtime::new().unwrap();
     rt.block_on(async move {
@@ -92,12 +94,12 @@ fn api_handle_command(
     }
 }
 
-async fn start_network(api: Sender<Message>, address: &str) -> Result<()> {
-    let mut listener = TcpListener::bind(address).await?;
+async fn start_network(api: Sender<Message>, address: impl ToSocketAddrs + Debug) -> Result<()> {
+    let mut listener = TcpListener::bind(&address).await?;
     let mut incoming = listener.incoming();
 
     // accept connections and process them serially
-    info!("Listening at {}", address);
+    info!("Listening at {:?}", address);
     while let Some(stream) = incoming.next().await {
         let stream = stream?;
         let api = api.clone();
