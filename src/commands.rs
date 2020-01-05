@@ -93,14 +93,59 @@ static COMMAND_TABLE: &[RedisCommand] = &[
         arity: 3,
     },
     RedisCommand {
-        name: "llen",
-        handler: list_type::llen,
-        arity: 2,
+        name: "rpush",
+        handler: list_type::rpush,
+        arity: -3,
     },
     RedisCommand {
         name: "lpush",
         handler: list_type::lpush,
         arity: -3,
+    },
+    RedisCommand {
+        name: "linsert",
+        handler: list_type::linsert,
+        arity: 5,
+    },
+    RedisCommand {
+        name: "rpop",
+        handler: list_type::rpop,
+        arity: 2,
+    },
+    RedisCommand {
+        name: "lpop",
+        handler: list_type::lpop,
+        arity: 2,
+    },
+    RedisCommand {
+        name: "llen",
+        handler: list_type::llen,
+        arity: 2,
+    },
+    RedisCommand {
+        name: "lindex",
+        handler: list_type::lindex,
+        arity: 3,
+    },
+    RedisCommand {
+        name: "lset",
+        handler: list_type::lset,
+        arity: 4,
+    },
+    RedisCommand {
+        name: "lrange",
+        handler: list_type::lrange,
+        arity: 4,
+    },
+    RedisCommand {
+        name: "ltrim",
+        handler: list_type::ltrim,
+        arity: 4,
+    },
+    RedisCommand {
+        name: "lrem",
+        handler: list_type::lrem,
+        arity: 4,
     },
     RedisCommand {
         name: "flushdb",

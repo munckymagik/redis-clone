@@ -7,6 +7,7 @@ pub trait ResponseExt {
     fn add_reply_help(&mut self, command: &str, help: &[&str]);
     fn add_reply_subcommand_syntax_error(&mut self, command: &str, sub_command: &str);
     fn add_reply_wrong_number_of_arguments(&mut self, command: &str);
+    fn add_reply_wrong_type(&mut self);
 }
 
 impl ResponseExt for Response {
@@ -40,6 +41,10 @@ impl ResponseExt for Response {
         let message = format!("ERR wrong number of arguments for '{}' command", command,);
 
         self.add_error(&message);
+    }
+
+    fn add_reply_wrong_type(&mut self) {
+        self.add_error("WRONGTYPE Operation against a key holding the wrong kind of value");
     }
 }
 
