@@ -1,7 +1,7 @@
 use crate::{db::Database, errors::Result, request::Request, response::Response};
 
 pub(crate) fn call(db: &mut Database, request: &Request, response: &mut Response) -> Result<()> {
-    let key = request.arg(0).unwrap();
+    let key = request.arg(0)?;
 
     match db.get(key) {
         Some(value) => {

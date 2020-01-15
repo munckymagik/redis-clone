@@ -9,7 +9,7 @@ pub(crate) fn decr(db: &mut Database, request: &Request, response: &mut Response
 }
 
 pub(crate) fn incrby(db: &mut Database, request: &Request, response: &mut Response) -> Result<()> {
-    let arg = request.arg(1).unwrap();
+    let arg = request.arg(1)?;
 
     if let Some(increment) = parse_i64_or_reply_with_error(response, &arg) {
         return incr_decr(db, request, response, increment);
@@ -19,7 +19,7 @@ pub(crate) fn incrby(db: &mut Database, request: &Request, response: &mut Respon
 }
 
 pub(crate) fn decrby(db: &mut Database, request: &Request, response: &mut Response) -> Result<()> {
-    let arg = request.arg(1).unwrap();
+    let arg = request.arg(1)?;
 
     if let Some(increment) = parse_i64_or_reply_with_error(response, &arg) {
         return incr_decr(db, request, response, -increment);
@@ -34,7 +34,7 @@ fn incr_decr(
     response: &mut Response,
     increment: i64,
 ) -> Result<()> {
-    let key = request.arg(0).unwrap();
+    let key = request.arg(0)?;
 
     if db.contains_key(key) {
         let old_value = &db[key];
