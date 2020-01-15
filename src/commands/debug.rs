@@ -9,7 +9,7 @@ const COMMAND_HELP: &[&str] = &[
 ];
 
 pub(crate) fn call(_: &mut Database, req: &Request, reply: &mut Response) -> Result<()> {
-    let sub_command = req.arg(0).unwrap().to_lowercase();
+    let sub_command = req.arg(0)?.to_lowercase();
 
     match sub_command.as_ref() {
         "help" => reply.add_reply_help(&req.command, COMMAND_HELP),

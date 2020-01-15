@@ -18,8 +18,15 @@ pub struct Request {
 }
 
 impl Request {
-    pub fn arg(&self, index: usize) -> Option<&String> {
+    pub fn maybe_arg(&self, index: usize) -> Option<&String> {
         self.argv.get(index)
+    }
+
+    pub fn arg(&self, index: usize) -> Result<&String> {
+        self.maybe_arg(index).ok_or_else(|| {
+            let msg = format!("Argument at {} does not exist", index);
+            Error::from(msg)
+        })
     }
 
     pub fn arity(&self) -> i64 {

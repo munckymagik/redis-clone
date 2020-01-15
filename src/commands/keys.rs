@@ -3,7 +3,7 @@ use globber::Pattern;
 use std::convert::TryInto;
 
 pub(crate) fn call(db: &mut Database, request: &Request, response: &mut Response) -> Result<()> {
-    let pattern = request.arg(0).unwrap();
+    let pattern = request.arg(0)?;
     let matcher = match Pattern::new(pattern) {
         Ok(m) => m,
         Err(_) => {
