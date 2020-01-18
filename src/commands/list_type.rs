@@ -16,7 +16,7 @@ macro_rules! try_int_arg_or_reply {
                 return Ok(());
             }
         };
-    }
+    };
 }
 
 pub(crate) fn rpush(db: &mut Database, request: &Request, response: &mut Response) -> Result<()> {
@@ -28,12 +28,12 @@ pub(crate) fn rpush(db: &mut Database, request: &Request, response: &mut Respons
             list.extend(values.to_owned());
 
             response.add_integer(list.len().try_into().unwrap());
-        },
+        }
         Some(_) => response.add_reply_wrong_type(),
         None => {
             db.insert(key.to_owned(), RObj::new_list_from(values.to_owned()));
             response.add_integer(values.len().try_into().unwrap());
-        },
+        }
     }
 
     Ok(())
@@ -48,7 +48,7 @@ pub(crate) fn lpush(db: &mut Database, request: &Request, response: &mut Respons
             values.iter().for_each(|v| list.push_front(v.to_owned()));
 
             response.add_integer(list.len().try_into().unwrap());
-        },
+        }
         Some(_) => response.add_reply_wrong_type(),
         None => {
             let len = values.len().try_into().unwrap();
@@ -56,7 +56,7 @@ pub(crate) fn lpush(db: &mut Database, request: &Request, response: &mut Respons
             db.insert(key.to_owned(), RObj::new_list_from(iter_reversed));
 
             response.add_integer(len);
-        },
+        }
     }
 
     Ok(())
@@ -87,7 +87,7 @@ pub(crate) fn linsert(db: &mut Database, request: &Request, response: &mut Respo
             } else {
                 response.add_integer(-1);
             }
-        },
+        }
         Some(_) => response.add_reply_wrong_type(),
         None => response.add_integer(0),
     }
@@ -105,7 +105,7 @@ pub(crate) fn rpop(db: &mut Database, request: &Request, response: &mut Response
             } else {
                 response.add_null_string();
             }
-        },
+        }
         Some(_) => response.add_reply_wrong_type(),
         None => {
             response.add_null_string();
@@ -125,7 +125,7 @@ pub(crate) fn lpop(db: &mut Database, request: &Request, response: &mut Response
             } else {
                 response.add_null_string();
             }
-        },
+        }
         Some(_) => response.add_reply_wrong_type(),
         None => {
             response.add_null_string();
@@ -159,7 +159,7 @@ pub(crate) fn lindex(db: &mut Database, request: &Request, response: &mut Respon
                 Err(_) => {
                     response.add_null_string();
                     return Ok(());
-                },
+                }
             };
 
             if let Some(value) = list.get(index) {
@@ -167,7 +167,7 @@ pub(crate) fn lindex(db: &mut Database, request: &Request, response: &mut Respon
             } else {
                 response.add_null_string();
             }
-        },
+        }
         Some(_) => response.add_reply_wrong_type(),
         None => response.add_null_string(),
     }
@@ -185,7 +185,7 @@ pub(crate) fn lset(db: &mut Database, request: &Request, response: &mut Response
             let index = to_index(offset, list.len());
             if index.is_negative() {
                 response.add_error("ERR index out of range");
-                return Ok(())
+                return Ok(());
             }
 
             let index: usize = index.try_into().unwrap();
@@ -200,7 +200,7 @@ pub(crate) fn lset(db: &mut Database, request: &Request, response: &mut Response
             } else {
                 response.add_error("ERR index out of range");
             }
-        },
+        }
         Some(_) => response.add_reply_wrong_type(),
         None => response.add_error("ERR no such key"),
     }
@@ -219,7 +219,10 @@ pub(crate) fn lrange(db: &mut Database, request: &Request, response: &mut Respon
             let start_index = to_index(start_offset, list.len());
             let end_index = to_index(end_offset, list.len());
 
-            if start_index > end_index || end_index < 0 || start_index >= list.len().try_into().unwrap() {
+            if start_index > end_index
+                || end_index < 0
+                || start_index >= list.len().try_into().unwrap()
+            {
                 response.add_array_len(0);
                 return Ok(());
             }
@@ -236,7 +239,7 @@ pub(crate) fn lrange(db: &mut Database, request: &Request, response: &mut Respon
             for item in iter {
                 response.add_bulk_string(item);
             }
-        },
+        }
         Some(_) => response.add_reply_wrong_type(),
         None => response.add_array_len(0),
     }
@@ -255,7 +258,10 @@ pub(crate) fn ltrim(db: &mut Database, request: &Request, response: &mut Respons
             let start_index = to_index(start_offset, list.len());
             let end_index = to_index(end_offset, list.len());
 
-            if start_index > end_index || end_index < 0 || start_index >= list.len().try_into().unwrap() {
+            if start_index > end_index
+                || end_index < 0
+                || start_index >= list.len().try_into().unwrap()
+            {
                 db.remove(key);
             } else {
                 let (start_index, mut end_index) = clamp(start_index, end_index, list.len());
@@ -271,7 +277,7 @@ pub(crate) fn ltrim(db: &mut Database, request: &Request, response: &mut Respons
             }
 
             response.add_simple_string("OK");
-        },
+        }
         Some(_) => response.add_reply_wrong_type(),
         None => response.add_simple_string("OK"),
     }
@@ -289,7 +295,7 @@ pub(crate) fn lrem(db: &mut Database, request: &Request, response: &mut Response
             let mut removed = 0;
             let mut reverse = false;
 
-            let maybe_rev_iter: Box<dyn DoubleEndedIterator<Item=&String>> = if to_remove < 0 {
+            let maybe_rev_iter: Box<dyn DoubleEndedIterator<Item = &String>> = if to_remove < 0 {
                 to_remove = -to_remove;
                 reverse = true;
                 Box::new(list.iter().rev())
@@ -297,16 +303,18 @@ pub(crate) fn lrem(db: &mut Database, request: &Request, response: &mut Response
                 Box::new(list.iter())
             };
 
-            let filtered: Vec<&String> = maybe_rev_iter.filter(|entry| {
-                if (to_remove == 0 || removed < to_remove) && entry == &obj {
-                    removed += 1;
-                    false
-                } else {
-                    true
-                }
-            }).collect();
+            let filtered: Vec<&String> = maybe_rev_iter
+                .filter(|entry| {
+                    if (to_remove == 0 || removed < to_remove) && entry == &obj {
+                        removed += 1;
+                        false
+                    } else {
+                        true
+                    }
+                })
+                .collect();
 
-            let result_iter: Box<dyn DoubleEndedIterator<Item=&String>> = if reverse {
+            let result_iter: Box<dyn DoubleEndedIterator<Item = &String>> = if reverse {
                 Box::new(filtered.iter().rev().cloned())
             } else {
                 Box::new(filtered.iter().cloned())
@@ -314,7 +322,7 @@ pub(crate) fn lrem(db: &mut Database, request: &Request, response: &mut Response
 
             db.insert(key.to_string(), RObj::new_list_from(result_iter.cloned()));
             response.add_integer(removed);
-        },
+        }
         Some(_) => response.add_reply_wrong_type(),
         None => response.add_integer(0),
     }
@@ -333,7 +341,7 @@ fn to_index(offset: isize, len: usize) -> isize {
 }
 
 fn clamp(start: isize, end: isize, len: usize) -> (usize, usize) {
-    use std::cmp::{min, max};
+    use std::cmp::{max, min};
 
     let start: usize = max(0, start).try_into().unwrap();
     let end = min(end.try_into().unwrap(), len - 1);
@@ -369,8 +377,8 @@ mod tests {
 
         // start indexes are clamped to 0
         assert_eq!(clamp(-1, 2, 3), (0, 2));
-        assert_eq!(clamp( 0, 2, 3), (0, 2));
-        assert_eq!(clamp( 1, 2, 3), (1, 2));
+        assert_eq!(clamp(0, 2, 3), (0, 2));
+        assert_eq!(clamp(1, 2, 3), (1, 2));
 
         // end indexes are clamped to the end
         assert_eq!(clamp(0, 1, 3), (0, 1));
