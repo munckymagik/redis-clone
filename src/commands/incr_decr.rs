@@ -1,4 +1,9 @@
-use crate::{db::Database, errors::Result, request::Request, response::Response};
+use crate::{
+    db::{Database, RObj},
+    errors::Result,
+    request::Request,
+    response::Response,
+};
 
 pub(crate) fn incr(db: &mut Database, request: &Request, response: &mut Response) -> Result<()> {
     incr_decr(db, request, response, 1)
@@ -36,19 +41,17 @@ fn incr_decr(
 ) -> Result<()> {
     let key = request.arg(0)?;
 
-    if db.contains_key(key) {
-        let old_value = &db[key];
-
+    if let Some(RObj::String(old_value)) = db.get(key) {
         if let Some(value) = parse_i64_or_reply_with_error(response, old_value) {
             if let Some(new_value) = value.checked_add(increment) {
-                db.insert(key.to_string(), new_value.to_string());
+                db.insert(key.to_string(), new_value.to_string().into());
                 response.add_integer(new_value);
             } else {
                 response.add_error("ERR increment or decrement would overflow")
             }
         }
     } else {
-        db.insert(key.to_string(), increment.to_string());
+        db.insert(key.to_string(), increment.to_string().into());
         response.add_integer(increment);
     }
 
