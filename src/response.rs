@@ -13,8 +13,8 @@ pub enum RespSym {
 use self::RespSym::*;
 
 impl RespSym {
-    pub fn as_char(&self) -> char {
-        char::from(*self as u8)
+    pub fn as_char(self) -> char {
+        char::from(self as u8)
     }
 }
 

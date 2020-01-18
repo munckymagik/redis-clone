@@ -50,7 +50,7 @@ impl TryFrom<Vec<String>> for Request {
     type Error = Error;
 
     fn try_from(mut query: Vec<String>) -> Result<Self> {
-        if query.len() == 0 {
+        if query.is_empty() {
             return Err(Error::EmptyRequest);
         }
 

@@ -4,7 +4,7 @@ pub(crate) fn call(db: &mut Database, request: &Request, response: &mut Response
     let mut count = 0;
 
     for key in request.arguments() {
-        if let Some(_) = db.remove(key) {
+        if db.remove(key).is_some() {
             count += 1;
         }
     }
