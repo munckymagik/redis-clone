@@ -13,19 +13,19 @@ pub enum RespSym {
 use self::RespSym::*;
 
 impl RespSym {
-    pub fn as_char(self) -> char {
-        char::from(self as u8)
+    pub fn as_ascii(self) -> u8 {
+        self as u8
     }
 }
 
 #[derive(Debug)]
 pub struct Response {
-    lines: Vec<String>,
+    buffer: Vec<u8>,
 }
 
 impl Response {
     pub fn new() -> Self {
-        Self { lines: vec![] }
+        Self { buffer: vec![] }
     }
 
     pub fn add_array_len(&mut self, len: i64) {
@@ -42,7 +42,8 @@ impl Response {
 
     pub fn add_bulk_string(&mut self, value: &str) {
         self.add(BulkString, value.len());
-        self.add_line(value);
+        self.buffer.extend(value.as_bytes());
+        self.buffer.extend(b"\r\n");
     }
 
     pub fn add_null_string(&mut self) {
@@ -58,22 +59,18 @@ impl Response {
     }
 
     fn add(&mut self, sym: RespSym, value: impl Display) {
-        self.add_line(&format!("{}{}", sym.as_char(), value));
+        self.buffer.push(sym.as_ascii());
+        self.buffer.extend(format!("{}", value).as_bytes());
+        self.buffer.extend(b"\r\n");
     }
 
-    fn add_line(&mut self, value: &str) {
-        self.lines.push(format!("{}\r\n", value));
-    }
-
-    pub fn as_bytes(&self) -> Vec<u8> {
-        self.lines.join("").into_bytes()
+    pub fn as_bytes(&self) -> &[u8] {
+        self.buffer.as_ref()
     }
 
     #[cfg(test)]
     pub fn as_string(&self) -> String {
-        let bytes = self.as_bytes();
-
-        std::str::from_utf8(&bytes).expect("utf8 error").to_string()
+        std::str::from_utf8(&self.buffer).expect("utf8 error").to_string()
     }
 }
 
@@ -83,7 +80,7 @@ mod test {
 
     #[test]
     fn rsym() {
-        assert_eq!(RespSym::Array.as_char(), '*');
+        assert_eq!(RespSym::Array.as_ascii(), b'*');
     }
 
     #[test]
