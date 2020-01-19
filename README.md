@@ -1,5 +1,7 @@
 # Rust::clone(Redis)
 
+⚠️ **NOT FOR PRODUCTION USE - toy only** ⚠️
+
 This is a clone of a portion of Redis for two reasons:
 
 * Give me a structured way of getting to know the real Redis source and learning what makes it so good.
