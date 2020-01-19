@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::{fmt::Display, io::Write};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 #[repr(u8)]
@@ -16,6 +16,10 @@ impl RespSym {
     pub fn as_ascii(self) -> u8 {
         self as u8
     }
+
+    pub fn as_char(self) -> char {
+        char::from(self.as_ascii())
+    }
 }
 
 #[derive(Debug)]
@@ -32,36 +36,36 @@ impl Response {
         self.add(Array, len);
     }
 
+    pub fn add_integer(&mut self, value: i64) {
+        self.add(Integer, value);
+    }
+
+    pub fn add_bulk_string(&mut self, value: &str) {
+        self.add(BulkString, value.len());
+        let iter = value.as_bytes().iter().chain(b"\r\n");
+        self.buffer.extend(iter);
+    }
+
     pub fn add_null_array(&mut self) {
-        self.add(Array, -1i64);
+        self.add(Array, "-1");
+    }
+
+    pub fn add_null_string(&mut self) {
+        self.add(BulkString, "-1");
     }
 
     pub fn add_simple_string(&mut self, value: &str) {
         self.add(SimpleString, value);
     }
 
-    pub fn add_bulk_string(&mut self, value: &str) {
-        self.add(BulkString, value.len());
-        self.buffer.extend(value.as_bytes());
-        self.buffer.extend(b"\r\n");
-    }
-
-    pub fn add_null_string(&mut self) {
-        self.add(BulkString, -1i64);
-    }
-
     pub fn add_error(&mut self, value: &str) {
         self.add(Error, value);
     }
 
-    pub fn add_integer(&mut self, value: i64) {
-        self.add(Integer, value);
-    }
-
     fn add(&mut self, sym: RespSym, value: impl Display) {
-        self.buffer.push(sym.as_ascii());
-        self.buffer.extend(format!("{}", value).as_bytes());
-        self.buffer.extend(b"\r\n");
+        #[allow(clippy::write_with_newline)]
+        write!(self.buffer, "{}{}\r\n", sym.as_char(), value)
+            .expect("failed write to response buffer");
     }
 
     pub fn as_bytes(&self) -> &[u8] {
@@ -70,7 +74,9 @@ impl Response {
 
     #[cfg(test)]
     pub fn as_string(&self) -> String {
-        std::str::from_utf8(&self.buffer).expect("utf8 error").to_string()
+        std::str::from_utf8(&self.buffer)
+            .expect("utf8 error")
+            .to_string()
     }
 }
 
@@ -81,6 +87,7 @@ mod test {
     #[test]
     fn rsym() {
         assert_eq!(RespSym::Array.as_ascii(), b'*');
+        assert_eq!(RespSym::Array.as_char(), '*');
     }
 
     #[test]
