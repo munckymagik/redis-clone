@@ -1,4 +1,4 @@
-RSpec.describe "List type", include_connection: true do
+RSpec.describe "List commands", include_connection: true do
   describe "arity" do
     specify "the arity for each command is correctly specified" do
       expect(redis.command("info", "rpush")[0][1]).to eql(-3)
