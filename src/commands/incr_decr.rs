@@ -3,6 +3,7 @@ use crate::{
     errors::Result,
     request::Request,
     response::Response,
+    response_ext::ResponseExt,
 };
 
 pub(crate) fn incr(db: &mut Database, request: &Request, response: &mut Response) -> Result<()> {
@@ -41,18 +42,22 @@ fn incr_decr(
 ) -> Result<()> {
     let key = request.arg(0)?;
 
-    if let Some(RObj::String(old_value)) = db.get(key) {
-        if let Some(value) = parse_i64_or_reply_with_error(response, old_value) {
-            if let Some(new_value) = value.checked_add(increment) {
-                db.insert(key.to_string(), new_value.to_string().into());
-                response.add_integer(new_value);
-            } else {
-                response.add_error("ERR increment or decrement would overflow")
+    match db.get(key) {
+        Some(RObj::String(old_value)) => {
+            if let Some(value) = parse_i64_or_reply_with_error(response, old_value) {
+                if let Some(new_value) = value.checked_add(increment) {
+                    db.insert(key.to_string(), new_value.to_string().into());
+                    response.add_integer(new_value);
+                } else {
+                    response.add_error("ERR increment or decrement would overflow")
+                }
             }
-        }
-    } else {
-        db.insert(key.to_string(), increment.to_string().into());
-        response.add_integer(increment);
+        },
+        Some(_) => response.add_reply_wrong_type(),
+        None => {
+            db.insert(key.to_string(), increment.to_string().into());
+            response.add_integer(increment);
+        },
     }
 
     Ok(())

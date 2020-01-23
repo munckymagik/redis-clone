@@ -10,6 +10,32 @@ RSpec.describe "Strings commands", include_connection: true do
     end
   end
 
+  describe "commands used against the wrong type" do
+    let(:expected_error) { "WRONGTYPE Operation against a key holding the wrong kind of value" }
+
+    specify "all but SET raise an error" do
+      redis.rpush("x", 1)
+
+      expect { redis.get("x") }
+        .to raise_error(expected_error)
+      expect { redis.incr("x") }
+        .to raise_error(expected_error)
+      expect { redis.incrby("x", 1) }
+        .to raise_error(expected_error)
+      expect { redis.decr("x") }
+        .to raise_error(expected_error)
+      expect { redis.decrby("x", 1) }
+        .to raise_error(expected_error)
+    end
+
+    specify "SET overwrites with the new type" do
+      redis.rpush("x", 1)
+
+      expect(redis.set("x", "y")).to eql("OK")
+      expect(redis.get("x")).to eql("y")
+    end
+  end
+
   describe "SET" do
     context "when the key does not exist" do
       it "sets the key to hold the string value" do
