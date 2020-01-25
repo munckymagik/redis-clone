@@ -12,10 +12,10 @@ This is a clone of a portion of Redis for two reasons:
 * Any version of Rust with "Rust 2018 edition" compatibility
   * Get Rust from https://rustup.rs/
 * Redis itself
-  * The API/integration tests can be run against _real_ Redis to cross validate
+  * The API/functional tests can be run against _real_ Redis to cross validate
   * We can use `redis-cli` to connect to and interact with the clone
   * `redis-benchmark` can be used to compare performance of the clone with the real one
-* Ruby 2.* - for the integration tests
+* Ruby 2.* - for the functional test suite
 
 ## Running
 
@@ -77,7 +77,7 @@ Then you can see what commands are available:
 There are two suites of tests:
 
 * Unit tests within the Rust source code
-* A suite of API or integration tests that use Ruby and the Ruby Redis Gem to test the supported commands
+* A suite of functional tests that use Ruby and the Ruby Redis Gem to test the supported commands
 
 First the Rust tests:
 
@@ -85,12 +85,12 @@ First the Rust tests:
 cargo test
 ```
 
-The for the integration tests:
+The for the functional tests:
 
 ```shell
-cd tests/integration
+cd tests/functional
 bundle install
-bundle exec rspec
+./bin/rspec
 ```
 
 To run the test suite against _real_ Redis do this:
