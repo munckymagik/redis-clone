@@ -49,18 +49,18 @@ pub(crate) fn get(db: &mut Database, request: &Request, response: &mut Response)
 }
 
 pub(crate) fn incr(db: &mut Database, request: &Request, response: &mut Response) -> Result<()> {
-    incr_decr(db, request, response, 1)
+    general_incr(db, request, response, 1)
 }
 
 pub(crate) fn decr(db: &mut Database, request: &Request, response: &mut Response) -> Result<()> {
-    incr_decr(db, request, response, -1)
+    general_incr(db, request, response, -1)
 }
 
 pub(crate) fn incrby(db: &mut Database, request: &Request, response: &mut Response) -> Result<()> {
     let arg = request.arg(1)?;
 
     if let Some(increment) = parse_i64_or_reply_with_error(response, &arg) {
-        return incr_decr(db, request, response, increment);
+        return general_incr(db, request, response, increment);
     }
 
     Ok(())
@@ -70,13 +70,13 @@ pub(crate) fn decrby(db: &mut Database, request: &Request, response: &mut Respon
     let arg = request.arg(1)?;
 
     if let Some(increment) = parse_i64_or_reply_with_error(response, &arg) {
-        return incr_decr(db, request, response, -increment);
+        return general_incr(db, request, response, -increment);
     }
 
     Ok(())
 }
 
-fn incr_decr(
+fn general_incr(
     db: &mut Database,
     request: &Request,
     response: &mut Response,
