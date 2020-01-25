@@ -66,7 +66,11 @@ pub(crate) fn debug(_: &mut Database, req: &Request, reply: &mut Response) -> Re
     Ok(())
 }
 
-pub(crate) fn flushdb(db: &mut Database, _request: &Request, response: &mut Response) -> Result<()> {
+pub(crate) fn flushdb(
+    db: &mut Database,
+    _request: &Request,
+    response: &mut Response,
+) -> Result<()> {
     // Clears all the key-values but retains memory
     db.clear();
 

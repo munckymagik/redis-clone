@@ -94,12 +94,12 @@ fn incr_decr(
                     response.add_error("ERR increment or decrement would overflow")
                 }
             }
-        },
+        }
         Some(_) => response.add_reply_wrong_type(),
         None => {
             db.insert(key.to_string(), increment.to_string().into());
             response.add_integer(increment);
-        },
+        }
     }
 
     Ok(())
