@@ -32,6 +32,7 @@ impl RedisCommand<'_> {
 }
 
 fn is_valid_arity(arity: i64, given: i64) -> bool {
+    assert!(arity != 0);
     arity == given || (arity < 0 && given >= arity.abs())
 }
 
@@ -171,12 +172,20 @@ mod tests {
 
     #[test]
     fn test_is_valid_arity() {
-        assert!(is_valid_arity(2, 2));
+        assert!(!is_valid_arity(2, 0));
         assert!(!is_valid_arity(2, 1));
+        assert!(is_valid_arity(2, 2));
         assert!(!is_valid_arity(2, 3));
 
-        assert!(is_valid_arity(-2, 2));
+        assert!(!is_valid_arity(-2, 0));
         assert!(!is_valid_arity(-2, 1));
+        assert!(is_valid_arity(-2, 2));
         assert!(is_valid_arity(-2, 3));
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_is_valid_arity_panics_on_zero() {
+        is_valid_arity(0, 0);
     }
 }

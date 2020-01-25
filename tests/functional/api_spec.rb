@@ -43,7 +43,7 @@ RSpec.describe "General API behaviour", include_connection: true do
     end
   end
 
-  describe "Error handling" do
+  describe "Error handling", redis_clone_only: true do
     specify "when there is a command error it reports a server error" do
       expect { redis.debug("error") }
         .to raise_error("ERR server error")

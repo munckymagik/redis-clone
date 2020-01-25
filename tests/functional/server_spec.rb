@@ -1,4 +1,18 @@
 RSpec.describe "Server commands", include_connection: true do
+  describe "arity" do
+    let(:command_arity) do
+      # Real Redis v5 wrongly report an arity of 0 for COMMAND. This has been
+      # fixed for upcoming Redis 6
+      # See: https://github.com/antirez/redis/commit/385f6190a3a9f8d2d5775bd058aaa2173dc05c8c
+      using_real_redis? ? 0 : -1
+    end
+    specify "the arity for each command is correctly specified" do
+      expect(redis.command("info", "command")[0][1]).to eql(command_arity)
+      expect(redis.command("info", "debug")[0][1]).to eql(-2)
+      expect(redis.command("info", "flushdb")[0][1]).to eql(-1)
+    end
+  end
+
   describe "COMMAND" do
     describe "(no subcommand)" do
       it "returns the full list of supported commands" do
@@ -12,13 +26,14 @@ RSpec.describe "Server commands", include_connection: true do
     describe "HELP" do
       it "returns the help string" do
         output = redis.command("help")
-        expect(output.count).to eql(4)
+        expect(output.count).to eql(5)
         expect(output[0]).to eql(
           "COMMAND <subcommand> arg arg ... arg. Subcommands are:"
         )
         expect(output[1]).to match(/^\(no subcommand\)/)
         expect(output[2]).to match(/^COUNT/)
-        expect(output[3]).to match(/^INFO/)
+        expect(output[3]).to match(/^GETKEYS/)
+        expect(output[4]).to match(/^INFO/)
       end
     end
 
@@ -66,14 +81,6 @@ RSpec.describe "Server commands", include_connection: true do
   end
 
   describe "DEBUG" do
-    it 'expects at least one argument' do
-      expect(redis.command("info", "debug")[0][1]).to eql(-2)
-
-      expect { redis.call("debug") }.to raise_error(
-        "ERR wrong number of arguments for 'debug' command"
-      )
-    end
-
     describe "HELP" do
       it "returns a help string" do
         result = redis.debug("help")
@@ -86,10 +93,6 @@ RSpec.describe "Server commands", include_connection: true do
   end
 
   describe "FLUSHDB" do
-    it 'accepts one optional argument' do
-      expect(redis.command("info", "flushdb")[0][1]).to eql(-1)
-    end
-
     it "deletes all the keys of the currently selected DB" do
       redis.set("x", "123")
       redis.set("y", "456")
