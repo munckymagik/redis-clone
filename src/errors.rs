@@ -13,6 +13,7 @@ pub enum Error {
     ProtocolError,
     Proto(ProtoError),
     Io(std::io::Error),
+    CastingInt(std::num::TryFromIntError),
 }
 
 impl StdError for Error {}
@@ -27,6 +28,7 @@ impl Display for Error {
             Self::ProtocolError => write!(f, "Protocol error: expected '$', got something else"),
             Self::Proto(ref source) => write!(f, "{}", source),
             Self::Io(ref source) => write!(f, "{}", source),
+            Self::CastingInt(ref source) => write!(f, "{}", source),
         }
     }
 }
@@ -40,6 +42,7 @@ impl PartialEq for Error {
             (&Self::Message(ref a), &Self::Message(ref b)) => a == b,
             (&Self::ProtocolError, &Self::ProtocolError) => true,
             (&Self::Proto(ref a), &Self::Proto(ref b)) => a == b,
+            (&Self::CastingInt(ref a), &Self::CastingInt(ref b)) => a == b,
             (&Self::Io(_), &Self::Io(_)) => false, // cannot be compared
             _ => false,
         }
@@ -70,6 +73,12 @@ impl From<&str> for Error {
 impl From<String> for Error {
     fn from(other: String) -> Self {
         Self::Message(other)
+    }
+}
+
+impl From<std::num::TryFromIntError> for Error {
+    fn from(other: std::num::TryFromIntError) -> Self {
+        Self::CastingInt(other)
     }
 }
 

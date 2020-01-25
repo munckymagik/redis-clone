@@ -16,10 +16,10 @@ pub(crate) fn command_command(_: &mut Database, req: &Request, reply: &mut Respo
     match req.maybe_arg(0) {
         Some(sub_command) => match sub_command.to_lowercase().as_ref() {
             "help" => reply.add_reply_help(&req.command, COMMAND_HELP),
-            "count" => reply.add_integer(COMMAND_TABLE.len().try_into().unwrap()),
+            "count" => reply.add_integer(COMMAND_TABLE.len().try_into()?),
             "info" => {
                 let requested = &req.arguments()[1..];
-                reply.add_array_len(requested.len().try_into().unwrap());
+                reply.add_array_len(requested.len().try_into()?);
                 for cmd in requested {
                     match super::lookup(&cmd) {
                         Some(cmd) => command_reply(reply, cmd),
@@ -30,7 +30,7 @@ pub(crate) fn command_command(_: &mut Database, req: &Request, reply: &mut Respo
             _ => reply.add_reply_subcommand_syntax_error(&req.command, sub_command),
         },
         None => {
-            reply.add_array_len(COMMAND_TABLE.len().try_into().unwrap());
+            reply.add_array_len(COMMAND_TABLE.len().try_into()?);
 
             for cmd in COMMAND_TABLE {
                 command_reply(reply, &cmd);

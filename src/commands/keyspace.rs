@@ -63,7 +63,7 @@ pub(crate) fn keys_command(
         db.keys().filter(|key| matcher.matches(key)).collect()
     };
 
-    response.add_array_len(results.len().try_into().unwrap());
+    response.add_array_len(results.len().try_into()?);
     for key in results {
         response.add_bulk_string(key);
     }
