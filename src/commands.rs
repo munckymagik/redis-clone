@@ -152,6 +152,11 @@ static COMMAND_TABLE: &[RedisCommand] = &[
         handler: keyspace::keys,
         arity: 2,
     },
+    RedisCommand {
+        name: "type",
+        handler: keyspace::r#type,
+        arity: 2,
+    },
 ];
 
 pub fn lookup(name: &str) -> Option<&RedisCommand> {

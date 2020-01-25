@@ -1,9 +1,10 @@
 RSpec.describe "Keyspace commands", include_connection: true do
   describe "arity" do
     specify "the arity for each command is correctly specified" do
-      expect(redis.command("info", "keys")[0][1]).to eql(2)
       expect(redis.command("info", "del")[0][1]).to eql(-2)
       expect(redis.command("info", "exists")[0][1]).to eql(-2)
+      expect(redis.command("info", "keys")[0][1]).to eql(2)
+      expect(redis.command("info", "type")[0][1]).to eql(2)
     end
   end
 
@@ -84,4 +85,25 @@ RSpec.describe "Keyspace commands", include_connection: true do
     end
   end
 
+  describe "TYPE" do
+    context "when the specified key does not exist" do
+      it "returns none" do
+        expect(redis.type("does-not-exist")).to eql("none")
+      end
+    end
+
+    context "when the specified key exists" do
+      it "returns 'string' for string types" do
+        redis.set("x", "123")
+        expect(redis.type("x")).to eql("string")
+        redis.incr("x")
+        expect(redis.type("x")).to eql("string")
+      end
+
+      it "returns 'list' for list types" do
+        redis.rpush("x", 1)
+        expect(redis.type("x")).to eql("list")
+      end
+    end
+  end
 end

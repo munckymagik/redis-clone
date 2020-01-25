@@ -1,4 +1,9 @@
-use crate::{db::Database, errors::Result, request::Request, response::Response};
+use crate::{
+    db::{Database, RObj},
+    errors::Result,
+    request::Request,
+    response::Response,
+};
 use globber::Pattern;
 use std::convert::TryInto;
 
@@ -49,6 +54,26 @@ pub(crate) fn keys(db: &mut Database, request: &Request, response: &mut Response
     response.add_array_len(results.len().try_into().unwrap());
     for key in results {
         response.add_bulk_string(key);
+    }
+
+    Ok(())
+}
+
+pub(crate) fn r#type(db: &mut Database, request: &Request, response: &mut Response) -> Result<()> {
+    let key = request.arg(0)?;
+
+    match db.get(key) {
+        Some(value) => {
+            let type_name = match value {
+                RObj::String(_) => "string",
+                RObj::List(_) => "list",
+            };
+
+            response.add_simple_string(type_name);
+        }
+        None => {
+            response.add_simple_string("none");
+        }
     }
 
     Ok(())
