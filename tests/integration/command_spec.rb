@@ -11,14 +11,13 @@ RSpec.describe "COMMAND", include_connection: true do
   describe "HELP" do
     it "returns the help string" do
       output = redis.command("help")
-      expect(output.count).to eql(5)
+      expect(output.count).to eql(4)
       expect(output[0]).to eql(
         "COMMAND <subcommand> arg arg ... arg. Subcommands are:"
       )
       expect(output[1]).to match(/^\(no subcommand\)/)
       expect(output[2]).to match(/^COUNT/)
-      expect(output[3]).to match(/^GETKEYS/)
-      expect(output[4]).to match(/^INFO/)
+      expect(output[3]).to match(/^INFO/)
     end
   end
 
@@ -26,13 +25,6 @@ RSpec.describe "COMMAND", include_connection: true do
     it "returns the number of supported commands" do
       expect(redis.command("count")).to be_an(Integer)
         .and(be > 0)
-    end
-  end
-
-  describe "GETKEYS" do
-    it do
-      pending "not implemented yet"
-      fail
     end
   end
 

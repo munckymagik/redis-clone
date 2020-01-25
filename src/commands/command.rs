@@ -7,7 +7,6 @@ use std::convert::TryInto;
 const COMMAND_HELP: &[&str] = &[
     "(no subcommand) -- Return details about all Redis commands.",
     "COUNT -- Return the total number of commands in this Redis server.",
-    "GETKEYS <full-command> -- Return the keys from a full Redis command.",
     "INFO [command-name ...] -- Return details about multiple Redis commands.",
 ];
 
