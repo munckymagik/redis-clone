@@ -8,6 +8,7 @@ pub trait ResponseExt {
     fn add_reply_subcommand_syntax_error(&mut self, command: &str, sub_command: &str);
     fn add_reply_wrong_number_of_arguments(&mut self, command: &str);
     fn add_reply_wrong_type(&mut self);
+    fn add_reply_not_a_number(&mut self);
 }
 
 impl ResponseExt for Response {
@@ -45,6 +46,10 @@ impl ResponseExt for Response {
 
     fn add_reply_wrong_type(&mut self) {
         self.add_error("WRONGTYPE Operation against a key holding the wrong kind of value");
+    }
+
+    fn add_reply_not_a_number(&mut self) {
+        self.add_error("ERR value is not an integer or out of range");
     }
 }
 

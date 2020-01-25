@@ -7,12 +7,12 @@ use crate::{
 };
 use std::convert::TryInto;
 
-macro_rules! try_int_arg_or_reply {
+macro_rules! parse_arg_or_reply_with_err {
     ($idx:literal, $req:expr, $resp:expr) => {
         match $req.arg($idx)?.parse() {
             Ok(n) => n,
             Err(_) => {
-                $resp.add_error("ERR value is not an integer or out of range");
+                $resp.add_reply_not_a_number();
                 return Ok(());
             }
         };
@@ -152,7 +152,7 @@ pub(crate) fn lindex(db: &mut Database, request: &Request, response: &mut Respon
 
     match db.get(key) {
         Some(RObj::List(list)) => {
-            let offset: isize = try_int_arg_or_reply!(1, request, response);
+            let offset: isize = parse_arg_or_reply_with_err!(1, request, response);
 
             let index = match to_index(offset, list.len()).try_into() {
                 Ok(n) => n,
@@ -180,7 +180,7 @@ pub(crate) fn lset(db: &mut Database, request: &Request, response: &mut Response
 
     match db.get_mut(key) {
         Some(RObj::List(list)) => {
-            let offset: isize = try_int_arg_or_reply!(1, request, response);
+            let offset: isize = parse_arg_or_reply_with_err!(1, request, response);
 
             let index = to_index(offset, list.len());
             if index.is_negative() {
@@ -213,8 +213,8 @@ pub(crate) fn lrange(db: &mut Database, request: &Request, response: &mut Respon
 
     match db.get(key) {
         Some(RObj::List(list)) => {
-            let start_offset: isize = try_int_arg_or_reply!(1, request, response);
-            let end_offset: isize = try_int_arg_or_reply!(2, request, response);
+            let start_offset: isize = parse_arg_or_reply_with_err!(1, request, response);
+            let end_offset: isize = parse_arg_or_reply_with_err!(2, request, response);
 
             let start_index = to_index(start_offset, list.len());
             let end_index = to_index(end_offset, list.len());
@@ -252,8 +252,8 @@ pub(crate) fn ltrim(db: &mut Database, request: &Request, response: &mut Respons
 
     match db.get_mut(key) {
         Some(RObj::List(ref mut list)) => {
-            let start_offset: isize = try_int_arg_or_reply!(1, request, response);
-            let end_offset: isize = try_int_arg_or_reply!(2, request, response);
+            let start_offset: isize = parse_arg_or_reply_with_err!(1, request, response);
+            let end_offset: isize = parse_arg_or_reply_with_err!(2, request, response);
 
             let start_index = to_index(start_offset, list.len());
             let end_index = to_index(end_offset, list.len());
@@ -290,7 +290,7 @@ pub(crate) fn lrem(db: &mut Database, request: &Request, response: &mut Response
 
     match db.remove(key) {
         Some(RObj::List(list)) => {
-            let mut to_remove: i64 = try_int_arg_or_reply!(1, request, response);
+            let mut to_remove: i64 = parse_arg_or_reply_with_err!(1, request, response);
             let obj = request.arg(2)?;
             let mut removed = 0;
             let mut reverse = false;

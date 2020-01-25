@@ -109,7 +109,7 @@ fn parse_i64_or_reply_with_error(response: &mut Response, value: &str) -> Option
     match value.parse() {
         Ok(v) => Some(v),
         Err(_) => {
-            response.add_error("ERR value is not an integer or out of range");
+            response.add_reply_not_a_number();
             None
         }
     }
