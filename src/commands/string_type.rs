@@ -6,7 +6,11 @@ use crate::{
     response_ext::ResponseExt,
 };
 
-pub(crate) fn set(db: &mut Database, request: &Request, response: &mut Response) -> Result<()> {
+pub(crate) fn set_command(
+    db: &mut Database,
+    request: &Request,
+    response: &mut Response,
+) -> Result<()> {
     let key = request.arg(0)?;
     let value = request.arg(1)?;
     let mut nx = false;
@@ -34,7 +38,11 @@ pub(crate) fn set(db: &mut Database, request: &Request, response: &mut Response)
     Ok(())
 }
 
-pub(crate) fn get(db: &mut Database, request: &Request, response: &mut Response) -> Result<()> {
+pub(crate) fn get_command(
+    db: &mut Database,
+    request: &Request,
+    response: &mut Response,
+) -> Result<()> {
     let key = request.arg(0)?;
 
     match db.get(key) {
@@ -48,15 +56,27 @@ pub(crate) fn get(db: &mut Database, request: &Request, response: &mut Response)
     Ok(())
 }
 
-pub(crate) fn incr(db: &mut Database, request: &Request, response: &mut Response) -> Result<()> {
+pub(crate) fn incr_command(
+    db: &mut Database,
+    request: &Request,
+    response: &mut Response,
+) -> Result<()> {
     general_incr(db, request, response, 1)
 }
 
-pub(crate) fn decr(db: &mut Database, request: &Request, response: &mut Response) -> Result<()> {
+pub(crate) fn decr_command(
+    db: &mut Database,
+    request: &Request,
+    response: &mut Response,
+) -> Result<()> {
     general_incr(db, request, response, -1)
 }
 
-pub(crate) fn incrby(db: &mut Database, request: &Request, response: &mut Response) -> Result<()> {
+pub(crate) fn incrby_command(
+    db: &mut Database,
+    request: &Request,
+    response: &mut Response,
+) -> Result<()> {
     let arg = request.arg(1)?;
 
     if let Some(increment) = parse_i64_or_reply_with_error(response, &arg) {
@@ -66,7 +86,11 @@ pub(crate) fn incrby(db: &mut Database, request: &Request, response: &mut Respon
     Ok(())
 }
 
-pub(crate) fn decrby(db: &mut Database, request: &Request, response: &mut Response) -> Result<()> {
+pub(crate) fn decrby_command(
+    db: &mut Database,
+    request: &Request,
+    response: &mut Response,
+) -> Result<()> {
     let arg = request.arg(1)?;
 
     if let Some(increment) = parse_i64_or_reply_with_error(response, &arg) {

@@ -7,7 +7,11 @@ use crate::{
 use globber::Pattern;
 use std::convert::TryInto;
 
-pub(crate) fn del(db: &mut Database, request: &Request, response: &mut Response) -> Result<()> {
+pub(crate) fn del_command(
+    db: &mut Database,
+    request: &Request,
+    response: &mut Response,
+) -> Result<()> {
     let mut count = 0;
 
     for key in request.arguments() {
@@ -21,7 +25,11 @@ pub(crate) fn del(db: &mut Database, request: &Request, response: &mut Response)
     Ok(())
 }
 
-pub(crate) fn exists(db: &mut Database, request: &Request, response: &mut Response) -> Result<()> {
+pub(crate) fn exists_command(
+    db: &mut Database,
+    request: &Request,
+    response: &mut Response,
+) -> Result<()> {
     let mut count = 0;
 
     for key in request.arguments() {
@@ -35,7 +43,11 @@ pub(crate) fn exists(db: &mut Database, request: &Request, response: &mut Respon
     Ok(())
 }
 
-pub(crate) fn keys(db: &mut Database, request: &Request, response: &mut Response) -> Result<()> {
+pub(crate) fn keys_command(
+    db: &mut Database,
+    request: &Request,
+    response: &mut Response,
+) -> Result<()> {
     let pattern = request.arg(0)?;
     let matcher = match Pattern::new(pattern) {
         Ok(m) => m,
@@ -59,7 +71,11 @@ pub(crate) fn keys(db: &mut Database, request: &Request, response: &mut Response
     Ok(())
 }
 
-pub(crate) fn r#type(db: &mut Database, request: &Request, response: &mut Response) -> Result<()> {
+pub(crate) fn type_command(
+    db: &mut Database,
+    request: &Request,
+    response: &mut Response,
+) -> Result<()> {
     let key = request.arg(0)?;
 
     match db.get(key) {

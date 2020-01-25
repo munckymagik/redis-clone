@@ -19,7 +19,11 @@ macro_rules! parse_arg_or_reply_with_err {
     };
 }
 
-pub(crate) fn rpush(db: &mut Database, request: &Request, response: &mut Response) -> Result<()> {
+pub(crate) fn rpush_command(
+    db: &mut Database,
+    request: &Request,
+    response: &mut Response,
+) -> Result<()> {
     let key = request.arg(0)?;
     let values = &request.arguments()[1..];
 
@@ -39,7 +43,11 @@ pub(crate) fn rpush(db: &mut Database, request: &Request, response: &mut Respons
     Ok(())
 }
 
-pub(crate) fn lpush(db: &mut Database, request: &Request, response: &mut Response) -> Result<()> {
+pub(crate) fn lpush_command(
+    db: &mut Database,
+    request: &Request,
+    response: &mut Response,
+) -> Result<()> {
     let key = request.arg(0)?;
     let values = &request.arguments()[1..];
 
@@ -62,7 +70,11 @@ pub(crate) fn lpush(db: &mut Database, request: &Request, response: &mut Respons
     Ok(())
 }
 
-pub(crate) fn linsert(db: &mut Database, request: &Request, response: &mut Response) -> Result<()> {
+pub(crate) fn linsert_command(
+    db: &mut Database,
+    request: &Request,
+    response: &mut Response,
+) -> Result<()> {
     let key = request.arg(0)?;
 
     match db.get_mut(key) {
@@ -95,7 +107,11 @@ pub(crate) fn linsert(db: &mut Database, request: &Request, response: &mut Respo
     Ok(())
 }
 
-pub(crate) fn rpop(db: &mut Database, request: &Request, response: &mut Response) -> Result<()> {
+pub(crate) fn rpop_command(
+    db: &mut Database,
+    request: &Request,
+    response: &mut Response,
+) -> Result<()> {
     let key = request.arg(0)?;
 
     match db.get_mut(key) {
@@ -115,7 +131,11 @@ pub(crate) fn rpop(db: &mut Database, request: &Request, response: &mut Response
     Ok(())
 }
 
-pub(crate) fn lpop(db: &mut Database, request: &Request, response: &mut Response) -> Result<()> {
+pub(crate) fn lpop_command(
+    db: &mut Database,
+    request: &Request,
+    response: &mut Response,
+) -> Result<()> {
     let key = request.arg(0)?;
 
     match db.get_mut(key) {
@@ -135,7 +155,11 @@ pub(crate) fn lpop(db: &mut Database, request: &Request, response: &mut Response
     Ok(())
 }
 
-pub(crate) fn llen(db: &mut Database, request: &Request, response: &mut Response) -> Result<()> {
+pub(crate) fn llen_command(
+    db: &mut Database,
+    request: &Request,
+    response: &mut Response,
+) -> Result<()> {
     let key = request.arg(0)?;
 
     match db.get(key) {
@@ -147,7 +171,11 @@ pub(crate) fn llen(db: &mut Database, request: &Request, response: &mut Response
     Ok(())
 }
 
-pub(crate) fn lindex(db: &mut Database, request: &Request, response: &mut Response) -> Result<()> {
+pub(crate) fn lindex_command(
+    db: &mut Database,
+    request: &Request,
+    response: &mut Response,
+) -> Result<()> {
     let key = request.arg(0)?;
 
     match db.get(key) {
@@ -175,7 +203,11 @@ pub(crate) fn lindex(db: &mut Database, request: &Request, response: &mut Respon
     Ok(())
 }
 
-pub(crate) fn lset(db: &mut Database, request: &Request, response: &mut Response) -> Result<()> {
+pub(crate) fn lset_command(
+    db: &mut Database,
+    request: &Request,
+    response: &mut Response,
+) -> Result<()> {
     let key = request.arg(0)?;
 
     match db.get_mut(key) {
@@ -208,7 +240,11 @@ pub(crate) fn lset(db: &mut Database, request: &Request, response: &mut Response
     Ok(())
 }
 
-pub(crate) fn lrange(db: &mut Database, request: &Request, response: &mut Response) -> Result<()> {
+pub(crate) fn lrange_command(
+    db: &mut Database,
+    request: &Request,
+    response: &mut Response,
+) -> Result<()> {
     let key = request.arg(0)?;
 
     match db.get(key) {
@@ -247,7 +283,11 @@ pub(crate) fn lrange(db: &mut Database, request: &Request, response: &mut Respon
     Ok(())
 }
 
-pub(crate) fn ltrim(db: &mut Database, request: &Request, response: &mut Response) -> Result<()> {
+pub(crate) fn ltrim_command(
+    db: &mut Database,
+    request: &Request,
+    response: &mut Response,
+) -> Result<()> {
     let key = request.arg(0)?;
 
     match db.get_mut(key) {
@@ -285,7 +325,11 @@ pub(crate) fn ltrim(db: &mut Database, request: &Request, response: &mut Respons
     Ok(())
 }
 
-pub(crate) fn lrem(db: &mut Database, request: &Request, response: &mut Response) -> Result<()> {
+pub(crate) fn lrem_command(
+    db: &mut Database,
+    request: &Request,
+    response: &mut Response,
+) -> Result<()> {
     let key = request.arg(0)?;
 
     match db.remove(key) {

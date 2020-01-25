@@ -12,7 +12,7 @@ const COMMAND_HELP: &[&str] = &[
     "INFO [command-name ...] -- Return details about multiple Redis commands.",
 ];
 
-pub(crate) fn command(_: &mut Database, req: &Request, reply: &mut Response) -> Result<()> {
+pub(crate) fn command_command(_: &mut Database, req: &Request, reply: &mut Response) -> Result<()> {
     match req.maybe_arg(0) {
         Some(sub_command) => match sub_command.to_lowercase().as_ref() {
             "help" => reply.add_reply_help(&req.command, COMMAND_HELP),
@@ -52,7 +52,7 @@ const DEBUG_HELP: &[&str] = &[
     "ERROR -- Simulate an error.",
 ];
 
-pub(crate) fn debug(_: &mut Database, req: &Request, reply: &mut Response) -> Result<()> {
+pub(crate) fn debug_command(_: &mut Database, req: &Request, reply: &mut Response) -> Result<()> {
     let sub_command = req.arg(0)?.to_lowercase();
 
     match sub_command.as_ref() {
@@ -67,7 +67,7 @@ pub(crate) fn debug(_: &mut Database, req: &Request, reply: &mut Response) -> Re
     Ok(())
 }
 
-pub(crate) fn flushdb(
+pub(crate) fn flushdb_command(
     db: &mut Database,
     _request: &Request,
     response: &mut Response,
