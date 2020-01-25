@@ -2,16 +2,10 @@ use crate::{
     db::Database, errors::Result, request::Request, response::Response, response_ext::ResponseExt,
 };
 
-mod command;
-mod debug;
-mod del;
-mod exists;
-mod flushdb;
-mod get;
-mod incr_decr;
-mod keys;
+mod keyspace;
 mod list_type;
-mod set;
+mod server;
+mod string_type;
 
 type RedisCommandProc = fn(db: &mut Database, req: &Request, resp: &mut Response) -> Result<()>;
 
@@ -44,52 +38,42 @@ fn is_valid_arity(arity: i64, given: i64) -> bool {
 static COMMAND_TABLE: &[RedisCommand] = &[
     RedisCommand {
         name: "get",
-        handler: get::call,
+        handler: string_type::get,
         arity: 2,
     },
     RedisCommand {
         name: "set",
-        handler: set::call,
+        handler: string_type::set,
         arity: -3,
     },
     RedisCommand {
         name: "del",
-        handler: del::call,
-        arity: -2,
-    },
-    RedisCommand {
-        name: "command",
-        handler: command::call,
-        arity: -1,
-    },
-    RedisCommand {
-        name: "debug",
-        handler: debug::call,
+        handler: keyspace::del,
         arity: -2,
     },
     RedisCommand {
         name: "exists",
-        handler: exists::call,
+        handler: keyspace::exists,
         arity: -2,
     },
     RedisCommand {
         name: "incr",
-        handler: incr_decr::incr,
+        handler: string_type::incr,
         arity: 2,
     },
     RedisCommand {
         name: "decr",
-        handler: incr_decr::decr,
+        handler: string_type::decr,
         arity: 2,
     },
     RedisCommand {
         name: "incrby",
-        handler: incr_decr::incrby,
+        handler: string_type::incrby,
         arity: 3,
     },
     RedisCommand {
         name: "decrby",
-        handler: incr_decr::decrby,
+        handler: string_type::decrby,
         arity: 3,
     },
     RedisCommand {
@@ -148,13 +132,23 @@ static COMMAND_TABLE: &[RedisCommand] = &[
         arity: 4,
     },
     RedisCommand {
+        name: "command",
+        handler: server::command,
+        arity: -1,
+    },
+    RedisCommand {
+        name: "debug",
+        handler: server::debug,
+        arity: -2,
+    },
+    RedisCommand {
         name: "flushdb",
-        handler: flushdb::call,
+        handler: server::flushdb,
         arity: -1,
     },
     RedisCommand {
         name: "keys",
-        handler: keys::call,
+        handler: keyspace::keys,
         arity: 2,
     },
 ];
