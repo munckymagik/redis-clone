@@ -4,6 +4,7 @@ RSpec.describe "Keyspace commands", include_connection: true do
       expect(redis.command("info", "del")[0][1]).to eql(-2)
       expect(redis.command("info", "exists")[0][1]).to eql(-2)
       expect(redis.command("info", "keys")[0][1]).to eql(2)
+      expect(redis.command("info", "object")[0][1]).to eql(-2)
       expect(redis.command("info", "type")[0][1]).to eql(2)
     end
   end
@@ -103,6 +104,55 @@ RSpec.describe "Keyspace commands", include_connection: true do
       it "returns 'list' for list types" do
         redis.rpush("x", 1)
         expect(redis.type("x")).to eql("list")
+      end
+    end
+  end
+
+  describe "OBJECT" do
+    describe "HELP" do
+      it "returns the help string" do
+        output = redis.object("help")
+        expect(output.count).to eql(5)
+        expect(output[0]).to eql(
+          "OBJECT <subcommand> arg arg ... arg. Subcommands are:"
+        )
+        expect(output[1]).to match(/^ENCODING/)
+        expect(output[2]).to match(/^FREQ/)
+        expect(output[3]).to match(/^IDLETIME/)
+        expect(output[4]).to match(/^REFCOUNT/)
+      end
+    end
+
+    describe "ENCODING" do
+      context "when key is not specified" do
+        it "replies with an error" do
+          expect { redis.object("encoding") }
+            .to raise_error(
+              "ERR Unknown subcommand or wrong number of arguments for " \
+              "'encoding'. Try OBJECT HELP."
+            )
+        end
+      end
+
+      context "when the specified key does not exist" do
+        it "returns none" do
+          expect(redis.object("encoding", "does-not-exist")).to be_nil
+        end
+      end
+
+      context "when the specified key exists" do
+        it "returns 'string' for string types" do
+          redis.set("a", "string")
+          redis.rpush("b", %w[1 2])
+
+          if using_real_redis?
+            expect(redis.object("encoding", "a")).to eql("embstr")
+            expect(redis.object("encoding", "b")).to eql("quicklist")
+          else
+            expect(redis.object("encoding", "a")).to eql("string")
+            expect(redis.object("encoding", "b")).to eql("vecdeque")
+          end
+        end
       end
     end
   end
