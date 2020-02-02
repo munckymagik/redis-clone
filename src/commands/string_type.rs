@@ -49,6 +49,9 @@ pub(crate) fn get_command(
         Some(RObj::String(value)) => {
             response.add_bulk_string(value);
         }
+        Some(RObj::Int(value)) => {
+            response.add_bulk_string(&value.to_string());
+        }
         Some(_) => response.add_reply_wrong_type(),
         None => response.add_null_string(),
     }
@@ -119,9 +122,17 @@ fn general_incr(
                 }
             }
         }
+        Some(RObj::Int(old_value)) => {
+            if let Some(new_value) = old_value.checked_add(increment) {
+                db.insert(key.to_string(), new_value.into());
+                response.add_integer(new_value);
+            } else {
+                response.add_error("ERR increment or decrement would overflow")
+            }
+        }
         Some(_) => response.add_reply_wrong_type(),
         None => {
-            db.insert(key.to_string(), increment.to_string().into());
+            db.insert(key.to_string(), increment.into());
             response.add_integer(increment);
         }
     }

@@ -39,8 +39,8 @@ RSpec.describe "Strings commands", include_connection: true do
   describe "SET" do
     context "when the key does not exist" do
       it "sets the key to hold the string value" do
-        expect(redis.set("x", "123")).to eql("OK")
-        expect(redis.get("x")).to eql("123")
+        expect(redis.set("x", "abc")).to eql("OK")
+        expect(redis.get("x")).to eql("abc")
       end
 
       it "sets the key to hold the string value if NX is specified" do
@@ -49,8 +49,23 @@ RSpec.describe "Strings commands", include_connection: true do
       end
 
       it "does not set the key if XX is specified" do
-        expect(redis.set("x", "123", xx: true)).to be(false)
+        expect(redis.set("x", "abc", xx: true)).to be(false)
         expect(redis.exists("x")).to be(false)
+      end
+
+      specify "encodes integers and characters differently" do
+        redis.set("x", "a")
+        expect(redis.object("encoding", "x")).to eql(
+          using_real_redis? ? "embstr" : "string"
+        )
+        redis.del("x")
+
+        redis.set("x", "-1")
+        expect(redis.object("encoding", "x")).to eql("int")
+        redis.set("x", "0")
+        expect(redis.object("encoding", "x")).to eql("int")
+        redis.set("x", "1")
+        expect(redis.object("encoding", "x")).to eql("int")
       end
     end
 
