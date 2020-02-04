@@ -82,7 +82,7 @@ pub(crate) fn type_command(
     match db.get(key) {
         Some(value) => {
             let type_name = match value {
-                RObj::String(_) => "string",
+                RObj::Int(_) | RObj::String(_) => "string",
                 RObj::List(_) => "list",
             };
 
@@ -103,7 +103,11 @@ const OBJECT_HELP: &[&str] = &[
     "REFCOUNT <key> -- NOT SUPPORTED",
 ];
 
-pub(crate) fn object_command(db: &mut Database, req: &Request, response: &mut Response) -> Result<()> {
+pub(crate) fn object_command(
+    db: &mut Database,
+    req: &Request,
+    response: &mut Response,
+) -> Result<()> {
     match req.maybe_arg(0) {
         Some(sub_command) => match sub_command.to_lowercase().as_ref() {
             "help" => response.add_reply_help(&req.command, OBJECT_HELP),
@@ -119,6 +123,7 @@ pub(crate) fn object_command(db: &mut Database, req: &Request, response: &mut Re
                 match db.get(key) {
                     Some(value) => {
                         let type_name = match value {
+                            RObj::Int(_) => "int",
                             RObj::String(_) => "string",
                             RObj::List(_) => "vecdeque",
                         };
