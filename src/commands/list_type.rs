@@ -255,10 +255,7 @@ pub(crate) fn lrange_command(
             let start_index = to_index(start_offset, list.len())?;
             let end_index = to_index(end_offset, list.len())?;
 
-            if start_index > end_index
-                || end_index < 0
-                || start_index >= list.len().try_into()?
-            {
+            if start_index > end_index || end_index < 0 || start_index >= list.len().try_into()? {
                 response.add_array_len(0);
                 return Ok(());
             }
@@ -298,10 +295,7 @@ pub(crate) fn ltrim_command(
             let start_index = to_index(start_offset, list.len())?;
             let end_index = to_index(end_offset, list.len())?;
 
-            if start_index > end_index
-                || end_index < 0
-                || start_index >= list.len().try_into()?
-            {
+            if start_index > end_index || end_index < 0 || start_index >= list.len().try_into()? {
                 db.remove(key);
             } else {
                 let (start_index, mut end_index) = clamp(start_index, end_index, list.len())?;

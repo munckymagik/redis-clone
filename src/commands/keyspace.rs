@@ -103,7 +103,11 @@ const OBJECT_HELP: &[&str] = &[
     "REFCOUNT <key> -- NOT SUPPORTED",
 ];
 
-pub(crate) fn object_command(db: &mut Database, req: &Request, response: &mut Response) -> Result<()> {
+pub(crate) fn object_command(
+    db: &mut Database,
+    req: &Request,
+    response: &mut Response,
+) -> Result<()> {
     match req.maybe_arg(0) {
         Some(sub_command) => match sub_command.to_lowercase().as_ref() {
             "help" => response.add_reply_help(&req.command, OBJECT_HELP),
