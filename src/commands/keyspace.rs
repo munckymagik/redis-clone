@@ -110,12 +110,12 @@ pub(crate) fn object_command(
 ) -> Result<()> {
     match req.maybe_arg(0) {
         Some(sub_command) => match sub_command.to_lowercase().as_ref() {
-            "help" => response.add_reply_help(&req.command, OBJECT_HELP),
+            "help" => response.add_reply_help(req.command(), OBJECT_HELP),
             "encoding" => {
                 let key = match req.maybe_arg(1) {
                     Some(k) => k,
                     None => {
-                        response.add_reply_subcommand_syntax_error(&req.command, sub_command);
+                        response.add_reply_subcommand_syntax_error(req.command(), sub_command);
                         return Ok(());
                     }
                 };
@@ -135,10 +135,10 @@ pub(crate) fn object_command(
                     }
                 }
             }
-            _ => response.add_reply_subcommand_syntax_error(&req.command, sub_command),
+            _ => response.add_reply_subcommand_syntax_error(req.command(), sub_command),
         },
         None => {
-            response.add_reply_subcommand_syntax_error(&req.command, "(none)");
+            response.add_reply_subcommand_syntax_error(req.command(), "(none)");
         }
     }
 

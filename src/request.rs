@@ -13,13 +13,16 @@ pub async fn parse(stream: &mut (impl AsyncBufRead + Unpin + Send)) -> Result<Re
 
 #[derive(Debug, PartialEq)]
 pub struct Request {
-    pub command: String,
     argv: Vec<String>,
 }
 
 impl Request {
     pub fn maybe_arg(&self, index: usize) -> Option<&String> {
-        self.argv.get(index)
+        self.argv.get(index + 1)
+    }
+
+    pub fn command(&self) -> &str {
+        &self.argv[0]
     }
 
     pub fn arg(&self, index: usize) -> Result<&String> {
@@ -30,15 +33,15 @@ impl Request {
     }
 
     pub fn arity(&self) -> i64 {
-        (1 + self.argv.len()).try_into().unwrap()
+        self.argv.len().try_into().unwrap()
     }
 
     pub fn arguments(&self) -> &[String] {
-        &self.argv
+        &self.argv[1..]
     }
 
     pub fn argv_to_string(&self) -> String {
-        self.argv
+        self.argv[1..]
             .iter()
             .map(|v| format!("`{}`,", v))
             .collect::<Vec<String>>()
@@ -49,17 +52,13 @@ impl Request {
 impl TryFrom<Vec<String>> for Request {
     type Error = Error;
 
-    fn try_from(mut query: Vec<String>) -> Result<Self> {
+    fn try_from(query: Vec<String>) -> Result<Self> {
         if query.is_empty() {
             return Err(Error::EmptyRequest);
         }
 
-        let tail = query.drain(1..).collect();
-        let head = query.pop().unwrap();
-
         Ok(Request {
-            command: head,
-            argv: tail,
+            argv: query,
         })
     }
 }
@@ -73,8 +72,8 @@ mod tests {
         let input = vec!["set".to_string(), "x".to_string(), "1".to_string()];
         let request = Request::try_from(input).unwrap();
 
-        assert_eq!(request.command, "set");
-        assert_eq!(request.argv, &["x", "1"]);
+        assert_eq!(request.command(), "set");
+        assert_eq!(request.arguments(), &["x", "1"]);
     }
 
     #[test]
@@ -82,8 +81,8 @@ mod tests {
         let input = vec!["set".to_string()];
         let request = Request::try_from(input).unwrap();
 
-        assert_eq!(request.command, "set");
-        assert_eq!(request.argv, &[] as &[&str]);
+        assert_eq!(request.command(), "set");
+        assert_eq!(request.arguments(), &[] as &[&str]);
     }
 
     #[test]
@@ -96,8 +95,7 @@ mod tests {
     #[test]
     fn test_args_to_string() {
         let request = Request {
-            command: "xxx".to_owned(),
-            argv: vec!["1".to_owned(), "2".to_owned(), "3".to_owned()],
+            argv: vec!["xxx".to_owned(), "1".to_owned(), "2".to_owned(), "3".to_owned()],
         };
 
         // Note: final comma is for consistency with real Redis
@@ -107,10 +105,29 @@ mod tests {
     #[test]
     fn test_arity() {
         let request = Request {
-            command: "xxx".to_owned(),
-            argv: vec!["1".to_owned(), "2".to_owned(), "3".to_owned()],
+            argv: vec!["xxx".to_owned(), "1".to_owned(), "2".to_owned(), "3".to_owned()],
         };
 
         assert_eq!(request.arity(), 4);
+    }
+
+    #[test]
+    fn test_maybe_arg() {
+        let request = Request {
+            argv: vec!["xxx".to_owned(), "1".to_owned()],
+        };
+
+        assert_eq!(request.maybe_arg(0), Some(&"1".to_string()));
+        assert_eq!(request.maybe_arg(1), None);
+    }
+
+    #[test]
+    fn test_arg() {
+        let request = Request {
+            argv: vec!["xxx".to_owned(), "1".to_owned()],
+        };
+
+        assert_eq!(request.arg(0), Ok(&"1".to_string()));
+        assert_eq!(request.arg(1), Err(Error::from("Argument at 1 does not exist")));
     }
 }

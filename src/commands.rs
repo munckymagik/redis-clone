@@ -23,7 +23,7 @@ impl RedisCommand<'_> {
         response: &mut Response,
     ) -> Result<()> {
         if !is_valid_arity(self.arity.into(), request.arity()) {
-            response.add_reply_wrong_number_of_arguments(&request.command);
+            response.add_reply_wrong_number_of_arguments(request.command());
             return Ok(());
         }
 
