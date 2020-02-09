@@ -96,6 +96,13 @@ RSpec.describe "Strings commands", include_connection: true do
           .to raise_error("ERR syntax error")
       end
     end
+
+    it "supports binary data in the key and value" do
+      # Invalid UTF-8 sequence sourced from:
+      #   https://stackoverflow.com/a/3886015/369171
+      expect(redis.set("x", "\xe2\x28\xa1")).to eql("OK")
+      expect(redis.get("x")).to eql("\xe2\x28\xa1")
+    end
   end
 
   describe "GET" do
