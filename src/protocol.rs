@@ -15,7 +15,7 @@ use std::convert::{TryFrom, TryInto};
 use std::marker::Unpin;
 use tokio::io::{AsyncBufRead, AsyncBufReadExt, AsyncReadExt};
 
-pub async fn decode<T: AsyncBufRead + Unpin + Send>(mut stream: T) -> ProtoResult<Vec<String>> {
+pub async fn decode<T: AsyncBufRead + Unpin + Send>(mut stream: T) -> ProtoResult<Vec<Vec<u8>>> {
     let (type_sym, value_str) = read_header(&mut stream).await?;
 
     if type_sym != b'*' {
@@ -74,7 +74,7 @@ async fn read_line(
 async fn read_bulk_string(
     stream: &mut (impl AsyncBufRead + Unpin + Send),
     len: i64,
-) -> ProtoResult<String> {
+) -> ProtoResult<Vec<u8>> {
     let len = usize::try_from(len).or(Err(ProtoError::InvalidBulkStringSize))?;
 
     if len > MAX_BULK_STR_SIZE {
@@ -83,15 +83,17 @@ async fn read_bulk_string(
 
     let mut buffer = vec![0; len + 2];
     stream.read_exact(&mut buffer).await?;
-    let value_str = std::str::from_utf8(&buffer[..len])?;
 
-    Ok(value_str.to_owned())
+    // Drop the trailing end of line chars
+    buffer.truncate(len);
+
+    Ok(buffer)
 }
 
 async fn read_array(
     stream: &mut (impl AsyncBufRead + Unpin + Send),
     len: i64,
-) -> ProtoResult<Vec<String>> {
+) -> ProtoResult<Vec<Vec<u8>>> {
     // We don't need to support empty or null arrays in requests
     if len == 0 || len == -1 {
         return Err(ProtoError::EmptyRequest);
@@ -223,7 +225,7 @@ mod test {
         let result = decode(input);
         assert_eq!(
             result.await.unwrap(),
-            vec!["abc\r\ndef".to_string(), "123".to_string()]
+            vec![b"abc\r\ndef".to_vec(), b"123".to_vec()]
         );
     }
 
@@ -241,7 +243,7 @@ mod test {
     async fn decode_empty_bulk_string() {
         let input: &[u8] = b"*1\r\n$0\r\n\r\n";
         let result = decode(input);
-        assert_eq!(result.await.unwrap(), vec!["".to_string()]);
+        assert_eq!(result.await.unwrap(), vec![b"".to_vec()]);
     }
 
     #[tokio::test]

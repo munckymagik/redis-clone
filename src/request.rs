@@ -49,16 +49,25 @@ impl Request {
     }
 }
 
-impl TryFrom<Vec<String>> for Request {
+impl TryFrom<Vec<Vec<u8>>> for Request {
     type Error = Error;
 
-    fn try_from(query: Vec<String>) -> Result<Self> {
+    fn try_from(query: Vec<Vec<u8>>) -> Result<Self> {
+        use std::result::Result as StdResult;
+
         if query.is_empty() {
             return Err(Error::EmptyRequest);
         }
 
+        let maybe_argv: StdResult<Vec<String>, _> = query
+            .into_iter()
+            .map(|v| String::from_utf8(v))
+            .collect();
+
+        let argv = maybe_argv?;
+
         Ok(Request {
-            argv: query,
+            argv,
         })
     }
 }
@@ -69,7 +78,7 @@ mod tests {
 
     #[test]
     fn test_try_into_request() {
-        let input = vec!["set".to_string(), "x".to_string(), "1".to_string()];
+        let input = vec![b"set".to_vec(), b"x".to_vec(), b"1".to_vec()];
         let request = Request::try_from(input).unwrap();
 
         assert_eq!(request.command(), "set");
@@ -78,7 +87,7 @@ mod tests {
 
     #[test]
     fn test_try_into_request_no_args() {
-        let input = vec!["set".to_string()];
+        let input = vec![b"set".to_vec()];
         let request = Request::try_from(input).unwrap();
 
         assert_eq!(request.command(), "set");
@@ -94,9 +103,7 @@ mod tests {
 
     #[test]
     fn test_args_to_string() {
-        let request = Request {
-            argv: vec!["xxx".to_owned(), "1".to_owned(), "2".to_owned(), "3".to_owned()],
-        };
+        let request = Request::try_from(vec![b"xxx".to_vec(), b"1".to_vec(), b"2".to_vec(), b"3".to_vec()]).unwrap();
 
         // Note: final comma is for consistency with real Redis
         assert_eq!(request.argv_to_string(), "`1`, `2`, `3`,");
@@ -104,18 +111,14 @@ mod tests {
 
     #[test]
     fn test_arity() {
-        let request = Request {
-            argv: vec!["xxx".to_owned(), "1".to_owned(), "2".to_owned(), "3".to_owned()],
-        };
+        let request = Request::try_from(vec![b"xxx".to_vec(), b"1".to_vec(), b"2".to_vec(), b"3".to_vec()]).unwrap();
 
         assert_eq!(request.arity(), 4);
     }
 
     #[test]
     fn test_maybe_arg() {
-        let request = Request {
-            argv: vec!["xxx".to_owned(), "1".to_owned()],
-        };
+        let request = Request::try_from(vec![b"xxx".to_vec(), b"1".to_vec()]).unwrap();
 
         assert_eq!(request.maybe_arg(0), Some(&"1".to_string()));
         assert_eq!(request.maybe_arg(1), None);
@@ -123,9 +126,7 @@ mod tests {
 
     #[test]
     fn test_arg() {
-        let request = Request {
-            argv: vec!["xxx".to_owned(), "1".to_owned()],
-        };
+        let request = Request::try_from(vec![b"xxx".to_vec(), b"1".to_vec()]).unwrap();
 
         assert_eq!(request.arg(0), Ok(&"1".to_string()));
         assert_eq!(request.arg(1), Err(Error::from("Argument at 1 does not exist")));
