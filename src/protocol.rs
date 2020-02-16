@@ -11,11 +11,12 @@ const MAX_LINE_LENGTH: usize = 64 * 1024;
 const LF: u8 = b'\n';
 const CRLF: &[u8] = b"\r\n";
 
+use byte_string::ByteString;
 use std::convert::{TryFrom, TryInto};
 use std::marker::Unpin;
 use tokio::io::{AsyncBufRead, AsyncBufReadExt, AsyncReadExt};
 
-pub async fn decode<T: AsyncBufRead + Unpin + Send>(mut stream: T) -> ProtoResult<Vec<Vec<u8>>> {
+pub async fn decode<T: AsyncBufRead + Unpin + Send>(mut stream: T) -> ProtoResult<Vec<ByteString>> {
     let (type_sym, value_str) = read_header(&mut stream).await?;
 
     if type_sym != b'*' {
@@ -74,14 +75,14 @@ async fn read_line(
 async fn read_bulk_string(
     stream: &mut (impl AsyncBufRead + Unpin + Send),
     len: i64,
-) -> ProtoResult<Vec<u8>> {
+) -> ProtoResult<ByteString> {
     let len = usize::try_from(len).or(Err(ProtoError::InvalidBulkStringSize))?;
 
     if len > MAX_BULK_STR_SIZE {
         return Err(ProtoError::InvalidBulkStringSize);
     }
 
-    let mut buffer = vec![0; len + 2];
+    let mut buffer = ByteString::from(vec![0; len + 2]);
     stream.read_exact(&mut buffer).await?;
 
     // Drop the trailing end of line chars
@@ -93,7 +94,7 @@ async fn read_bulk_string(
 async fn read_array(
     stream: &mut (impl AsyncBufRead + Unpin + Send),
     len: i64,
-) -> ProtoResult<Vec<Vec<u8>>> {
+) -> ProtoResult<Vec<ByteString>> {
     // We don't need to support empty or null arrays in requests
     if len == 0 || len == -1 {
         return Err(ProtoError::EmptyRequest);
@@ -225,7 +226,10 @@ mod test {
         let result = decode(input);
         assert_eq!(
             result.await.unwrap(),
-            vec![b"abc\r\ndef".to_vec(), b"123".to_vec()]
+            vec![
+                ByteString::from("abc\r\ndef"),
+                ByteString::from("123"),
+            ]
         );
     }
 
@@ -243,7 +247,7 @@ mod test {
     async fn decode_empty_bulk_string() {
         let input: &[u8] = b"*1\r\n$0\r\n\r\n";
         let result = decode(input);
-        assert_eq!(result.await.unwrap(), vec![b"".to_vec()]);
+        assert_eq!(result.await.unwrap(), vec![ByteString::new()]);
     }
 
     #[tokio::test]

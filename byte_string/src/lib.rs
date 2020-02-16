@@ -60,6 +60,10 @@ impl ByteString {
     pub fn as_byte_str(&self) -> ByteStr<'_> {
         ByteStr::new(&self.bytes)
     }
+
+    pub fn into_vec(self) -> Vec<u8> {
+        self.bytes
+    }
 }
 
 impl From<Vec<u8>> for ByteString
@@ -174,5 +178,13 @@ mod tests {
     fn test_byte_string_as_byte_str() {
         let a = ByteString::from(b"hello");
         let _b: ByteStr = a.as_byte_str();
+    }
+
+    #[test]
+    fn test_byte_string_into_vec() {
+        fn assert_vec(_: Vec<u8>) {};
+
+        let a = ByteString::from(b"hello");
+        assert_vec(a.into_vec());
     }
 }
