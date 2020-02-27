@@ -5,6 +5,7 @@ use crate::{
     response::Response,
     response_ext::ResponseExt,
 };
+use byte_string::ByteString;
 
 pub(crate) fn set_command(
     db: &mut Database,
@@ -32,7 +33,7 @@ pub(crate) fn set_command(
         return Ok(());
     }
 
-    db.insert(key.to_owned(), value.to_owned().into());
+    db.insert(key.to_owned(), ByteString::from(value).into());
     response.add_simple_string("OK");
 
     Ok(())
@@ -46,7 +47,7 @@ pub(crate) fn get_command(
     let key = request.arg(0)?;
 
     match db.get(key) {
-        Some(RObj::String(value)) => {
+        Some(RObj::BString(value)) => {
             response.add_bulk_string(value);
         }
         Some(RObj::Int(value)) => {

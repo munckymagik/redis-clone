@@ -30,6 +30,12 @@ impl From<String> for RObj {
     }
 }
 
+impl From<ByteString> for RObj {
+    fn from(other: ByteString) -> Self {
+        Self::BString(other)
+    }
+}
+
 impl RObj {
     pub fn new_list_from(other: impl IntoIterator<Item = String>) -> Self {
         RObj::List(VecDeque::from_iter(other))
@@ -63,5 +69,11 @@ mod tests {
 
         let o: RObj = format!("{}1", std::i64::MAX).into();
         assert_eq!(o, RObj::String("92233720368547758071".to_owned()));
+    }
+
+    #[test]
+    fn test_from_bstring() {
+        let o: RObj = ByteString::from("a").into();
+        assert_eq!(o, RObj::BString(ByteString::from("a")));
     }
 }

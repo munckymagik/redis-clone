@@ -40,9 +40,10 @@ impl Response {
         self.add(Integer, value);
     }
 
-    pub fn add_bulk_string(&mut self, value: &str) {
+    pub fn add_bulk_string<T: AsRef<[u8]>>(&mut self, value: T) {
+        let value = value.as_ref();
         self.add(BulkString, value.len());
-        let iter = value.as_bytes().iter().chain(b"\r\n");
+        let iter = value.iter().chain(b"\r\n");
         self.buffer.extend(iter);
     }
 

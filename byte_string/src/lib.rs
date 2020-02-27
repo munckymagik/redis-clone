@@ -96,6 +96,12 @@ impl std::ops::DerefMut for ByteString {
     }
 }
 
+impl AsRef<[u8]> for ByteString {
+    fn as_ref(&self) -> &[u8] {
+        self.bytes.as_ref()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -186,5 +192,14 @@ mod tests {
 
         let a = ByteString::from(b"hello");
         assert_vec(a.into_vec());
+    }
+
+    #[test]
+    fn test_byte_string_as_ref_u8() {
+        fn assert_as_ref(_: impl AsRef<[u8]>) {};
+
+        let a = ByteString::from(b"hello");
+        assert_as_ref(&a);
+        assert_eq!(a.as_ref(), b"hello");
     }
 }
