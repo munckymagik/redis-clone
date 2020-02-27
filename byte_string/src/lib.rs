@@ -1,4 +1,5 @@
 use std::borrow::Cow;
+use std::error::Error as StdError;
 use std::fmt::{self, Display};
 
 #[derive(Debug, PartialEq)]
@@ -63,6 +64,38 @@ impl ByteString {
 
     pub fn into_vec(self) -> Vec<u8> {
         self.bytes
+    }
+
+    pub fn parse(&self) -> Result<i64, ParseIntError> {
+        if self.len() == 0 {
+            return Err(ParseIntError);
+        }
+
+        let (digits, sign_factor) = match self.bytes[0] {
+            b'+' => (&self.bytes[1..], 1),
+            b'-' => (&self.bytes[1..], -1),
+            _ => (&self.bytes[..], 1),
+        };
+
+        let mut result: i64 = 0;
+
+        for &c in digits {
+            let digit = (c as char).to_digit(10).ok_or(ParseIntError)?;
+            result = result.checked_mul(10).ok_or(ParseIntError)?;
+            let signed_digit = (digit as i64) * sign_factor;
+            result = result.checked_add(signed_digit).ok_or(ParseIntError)?;
+        }
+
+        Ok(result)
+    }
+}
+
+#[derive(Debug, PartialEq)]
+pub struct ParseIntError;
+impl StdError for ParseIntError {}
+impl Display for ParseIntError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "error parsing int from byte string")
     }
 }
 
@@ -201,5 +234,35 @@ mod tests {
         let a = ByteString::from(b"hello");
         assert_as_ref(&a);
         assert_eq!(a.as_ref(), b"hello");
+    }
+
+    #[test]
+    fn test_byte_string_parse() {
+        fn parse(bs: &[u8]) -> Result<i64, ParseIntError> {
+            ByteString::from(bs).parse()
+        }
+
+        // Success cases
+        assert_eq!(parse(b"0"), Ok(0));
+        assert_eq!(parse(b"1"), Ok(1));
+        assert_eq!(parse(b"+0"), Ok(0));
+        assert_eq!(parse(b"-0"), Ok(0));
+        assert_eq!(parse(b"+1"), Ok(1));
+        assert_eq!(parse(b"-1"), Ok(-1));
+        assert_eq!(parse(b"+9223372036854775807"), Ok(std::i64::MAX));
+        assert_eq!(parse(b"-9223372036854775808"), Ok(std::i64::MIN));
+
+        // Error cases
+        assert_eq!(parse(b""), Err(ParseIntError));
+        assert_eq!(parse(b"x"), Err(ParseIntError));
+
+        // The final mul by the radix will overflow
+        assert_eq!(parse(b"92233720368547758071"), Err(ParseIntError));
+
+        // The adding the final 8 digit will overflow
+        assert_eq!(parse(b"9223372036854775808"), Err(ParseIntError));
+
+        fn expect_std_error(_: impl std::error::Error) {}
+        expect_std_error(ParseIntError);
     }
 }
