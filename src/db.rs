@@ -3,12 +3,14 @@ use std::{
     collections::VecDeque,
     iter::{FromIterator, IntoIterator},
 };
+use byte_string::ByteString;
 
 pub type Database = HashMap<String, RObj>;
 
 #[derive(Debug, PartialEq)]
 pub enum RObj {
     Int(i64),
+    BString(ByteString),
     String(String),
     List(VecDeque<String>),
 }
