@@ -15,6 +15,7 @@ pub async fn parse(stream: &mut (impl AsyncBufRead + Unpin + Send)) -> Result<Re
 #[derive(Debug, PartialEq)]
 pub struct Request {
     argv: Vec<String>,
+    argb: Vec<ByteString>,
 }
 
 impl Request {
@@ -33,12 +34,27 @@ impl Request {
         })
     }
 
+    pub fn bs_maybe_arg(&self, index: usize) -> Option<&ByteString> {
+        self.argb.get(index + 1)
+    }
+
+    pub fn bs_arg(&self, index: usize) -> Result<&ByteString> {
+        self.bs_maybe_arg(index).ok_or_else(|| {
+            let msg = format!("Argument at {} does not exist", index);
+            Error::from(msg)
+        })
+    }
+
     pub fn arity(&self) -> i64 {
         self.argv.len().try_into().unwrap()
     }
 
     pub fn arguments(&self) -> &[String] {
         &self.argv[1..]
+    }
+
+    pub fn bs_arguments(&self) -> &[ByteString] {
+        &self.argb[1..]
     }
 
     pub fn argv_to_string(&self) -> String {
@@ -61,14 +77,15 @@ impl TryFrom<Vec<ByteString>> for Request {
         }
 
         let maybe_argv: StdResult<Vec<String>, _> = query
-            .into_iter()
-            .map(|v| String::from_utf8(v.into_vec()))
+            .iter()
+            .map(|v| String::from_utf8((**v).clone()))
             .collect();
 
         let argv = maybe_argv?;
 
         Ok(Request {
             argv,
+            argb: query,
         })
     }
 }

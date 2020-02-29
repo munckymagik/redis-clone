@@ -11,7 +11,7 @@ pub type Database = HashMap<String, RObj>;
 pub enum RObj {
     Int(i64),
     String(ByteString),
-    List(VecDeque<String>),
+    List(VecDeque<ByteString>),
 }
 
 impl From<i64> for RObj {
@@ -30,7 +30,7 @@ impl From<ByteString> for RObj {
 }
 
 impl RObj {
-    pub fn new_list_from(other: impl IntoIterator<Item = String>) -> Self {
+    pub fn new_list_from(other: impl IntoIterator<Item = ByteString>) -> Self {
         RObj::List(VecDeque::from_iter(other))
     }
 }
@@ -41,8 +41,8 @@ mod tests {
 
     #[test]
     fn test_new_list_from() {
-        let expected = RObj::List(VecDeque::from(vec!["x".to_string()]));
-        let actual = RObj::new_list_from(vec!["x".to_string()]);
+        let expected = RObj::List(VecDeque::from(vec!["x".into()]));
+        let actual = RObj::new_list_from(vec!["x".into()]);
         assert_eq!(actual, expected);
     }
 

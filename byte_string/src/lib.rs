@@ -48,7 +48,7 @@ impl Display for ByteStr<'_> {
     }
 }
 
-#[derive(Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct ByteString {
     bytes: Vec<u8>,
 }
@@ -87,6 +87,15 @@ impl ByteString {
         }
 
         Ok(result)
+    }
+
+    pub fn to_lowercase(&self) -> Self {
+        let lowered_bytes = self.bytes
+            .iter()
+            .map(u8::to_ascii_lowercase)
+            .collect::<Vec<u8>>();
+
+        Self::from(lowered_bytes)
     }
 }
 
@@ -246,6 +255,13 @@ mod tests {
     }
 
     #[test]
+    fn test_byte_string_clone() {
+        let a: ByteString = "a".into();
+        let b = a.clone();
+        assert_eq!(a, b);
+    }
+
+    #[test]
     fn test_byte_string_parse() {
         fn parse(bs: &[u8]) -> Result<i64, ParseIntError> {
             ByteString::from(bs).parse()
@@ -273,5 +289,12 @@ mod tests {
 
         fn expect_std_error(_: impl std::error::Error) {}
         expect_std_error(ParseIntError);
+    }
+
+    #[test]
+    fn test_byte_string_to_lowercase() {
+        let a: ByteString = "abcABC123\x01".into();
+        let b = a.to_lowercase();
+        assert_eq!(b, "abcabc123\x01".into())
     }
 }
