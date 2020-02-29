@@ -50,17 +50,18 @@ pub(crate) fn keys_command(
     response: &mut Response,
 ) -> Result<()> {
     let pattern = request.arg(0)?;
-    let matcher = match Pattern::new(pattern) {
-        Ok(m) => m,
-        Err(_) => {
-            response.add_array_len(0);
-            return Ok(());
-        }
-    };
 
     let results: Vec<_> = if pattern == "*" {
         db.keys().collect()
     } else {
+        let matcher = match Pattern::new(pattern) {
+            Ok(m) => m,
+            Err(_) => {
+                response.add_array_len(0);
+                return Ok(());
+            }
+        };
+
         db.keys().filter(|key| matcher.matches(key)).collect()
     };
 
