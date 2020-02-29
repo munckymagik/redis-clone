@@ -56,7 +56,7 @@ RSpec.describe "Strings commands", include_connection: true do
       specify "encodes integers and characters differently" do
         redis.set("x", "a")
         expect(redis.object("encoding", "x")).to eql(
-          using_real_redis? ? "embstr" : "string"
+          using_real_redis? ? "embstr" : "bstring"
         )
         redis.del("x")
 

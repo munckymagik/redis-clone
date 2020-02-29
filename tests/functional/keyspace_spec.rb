@@ -141,16 +141,19 @@ RSpec.describe "Keyspace commands", include_connection: true do
       end
 
       context "when the specified key exists" do
-        it "returns 'string' for string types" do
+        it "returns the encoding for values" do
           redis.set("a", "string")
           redis.rpush("b", %w[1 2])
+          redis.set("c", 1)
 
           if using_real_redis?
             expect(redis.object("encoding", "a")).to eql("embstr")
             expect(redis.object("encoding", "b")).to eql("quicklist")
+            expect(redis.object("encoding", "c")).to eql("int")
           else
-            expect(redis.object("encoding", "a")).to eql("string")
+            expect(redis.object("encoding", "a")).to eql("bstring")
             expect(redis.object("encoding", "b")).to eql("vecdeque")
+            expect(redis.object("encoding", "c")).to eql("int")
           end
         end
       end

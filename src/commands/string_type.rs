@@ -81,7 +81,7 @@ pub(crate) fn incrby_command(
     request: &Request,
     response: &mut Response,
 ) -> Result<()> {
-    let arg = request.arg(1)?;
+    let arg = ByteString::from(request.arg(1)?);
 
     if let Some(increment) = parse_i64_or_reply_with_error(response, &arg) {
         return general_incr(db, request, response, increment);
@@ -95,7 +95,7 @@ pub(crate) fn decrby_command(
     request: &Request,
     response: &mut Response,
 ) -> Result<()> {
-    let arg = request.arg(1)?;
+    let arg = ByteString::from(request.arg(1)?);
 
     if let Some(increment) = parse_i64_or_reply_with_error(response, &arg) {
         return general_incr(db, request, response, -increment);
@@ -113,10 +113,10 @@ fn general_incr(
     let key = request.arg(0)?;
 
     match db.get(key) {
-        Some(RObj::String(old_value)) => {
+        Some(RObj::BString(old_value)) => {
             if let Some(value) = parse_i64_or_reply_with_error(response, old_value) {
                 if let Some(new_value) = value.checked_add(increment) {
-                    db.insert(key.to_string(), new_value.to_string().into());
+                    db.insert(key.to_string(), ByteString::from(new_value.to_string()).into());
                     response.add_integer(new_value);
                 } else {
                     response.add_error("ERR increment or decrement would overflow")
@@ -141,7 +141,7 @@ fn general_incr(
     Ok(())
 }
 
-fn parse_i64_or_reply_with_error(response: &mut Response, value: &str) -> Option<i64> {
+fn parse_i64_or_reply_with_error(response: &mut Response, value: &ByteString) -> Option<i64> {
     match value.parse() {
         Ok(v) => Some(v),
         Err(_) => {

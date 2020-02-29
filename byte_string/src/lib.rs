@@ -106,6 +106,12 @@ impl From<Vec<u8>> for ByteString
     }
 }
 
+impl From<String> for ByteString {
+    fn from(other: String) -> Self {
+        ByteString { bytes: other.into_bytes() }
+    }
+}
+
 impl<T> From<&T> for ByteString
 where
     T: AsRef<[u8]> + ?Sized
@@ -194,10 +200,13 @@ mod tests {
 
     #[test]
     fn test_byte_string_from() {
+        // Vecs and Strings are moved
         let _a = ByteString::from(b"hello".to_vec());
-        let _b = ByteString::from(b"hello");
-        let _c = ByteString::from("hello");
-        let _d: ByteString = "hello".into();
+        let _b = ByteString::from("hello".to_string());
+
+        // Slice/reference types are cloned
+        let _c = ByteString::from(b"hello");
+        let _d = ByteString::from("hello");
     }
 
     #[test]

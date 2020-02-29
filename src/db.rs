@@ -32,7 +32,10 @@ impl From<String> for RObj {
 
 impl From<ByteString> for RObj {
     fn from(other: ByteString) -> Self {
-        Self::BString(other)
+        match other.parse() {
+            Ok(n) => Self::Int(n),
+            Err(_) => Self::BString(other),
+        }
     }
 }
 
@@ -73,7 +76,26 @@ mod tests {
 
     #[test]
     fn test_from_bstring() {
+        // Non-numbers because BStrings
         let o: RObj = ByteString::from("a").into();
         assert_eq!(o, RObj::BString(ByteString::from("a")));
+
+        // Numbers become Ints
+        let o: RObj = ByteString::from("-123").into();
+        assert_eq!(o, RObj::Int(-123_i64));
+
+        // The maximum value of an i64 can be stored as an Int
+        let max = format!("{}", std::i64::MAX);
+        let o: RObj = ByteString::from(max).into();
+        assert_eq!(o, RObj::Int(std::i64::MAX));
+
+        // The minimum value of an i64 can be stored as an Int
+        let min = format!("{}", std::i64::MIN);
+        let o: RObj = ByteString::from(min).into();
+        assert_eq!(o, RObj::Int(std::i64::MIN));
+
+        // Overflowing the maximum value of an i64 results in a BString
+        let o: RObj = ByteString::from(format!("{}1", std::i64::MAX)).into();
+        assert_eq!(o, RObj::BString(ByteString::from("92233720368547758071")));
     }
 }
