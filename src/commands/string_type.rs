@@ -47,7 +47,7 @@ pub(crate) fn get_command(
     let key = request.arg(0)?;
 
     match db.get(key) {
-        Some(RObj::BString(value)) => {
+        Some(RObj::String(value)) => {
             response.add_bulk_string(value);
         }
         Some(RObj::Int(value)) => {
@@ -113,7 +113,7 @@ fn general_incr(
     let key = request.arg(0)?;
 
     match db.get(key) {
-        Some(RObj::BString(old_value)) => {
+        Some(RObj::String(old_value)) => {
             if let Some(value) = parse_i64_or_reply_with_error(response, old_value) {
                 if let Some(new_value) = value.checked_add(increment) {
                     db.insert(key.to_string(), ByteString::from(new_value.to_string()).into());

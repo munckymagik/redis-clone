@@ -82,7 +82,7 @@ pub(crate) fn type_command(
     match db.get(key) {
         Some(value) => {
             let type_name = match value {
-                RObj::Int(_) | RObj::String(_) | RObj::BString(_) => "string",
+                RObj::Int(_) | RObj::String(_) => "string",
                 RObj::List(_) => "list",
             };
 
@@ -124,8 +124,7 @@ pub(crate) fn object_command(
                     Some(value) => {
                         let type_name = match value {
                             RObj::Int(_) => "int",
-                            RObj::String(_) => "string",
-                            RObj::BString(_) => "bstring",
+                            RObj::String(_) => "byte_string",
                             RObj::List(_) => "vecdeque",
                         };
 

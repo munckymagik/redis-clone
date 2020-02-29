@@ -151,7 +151,7 @@ RSpec.describe "Keyspace commands", include_connection: true do
             expect(redis.object("encoding", "b")).to eql("quicklist")
             expect(redis.object("encoding", "c")).to eql("int")
           else
-            expect(redis.object("encoding", "a")).to eql("bstring")
+            expect(redis.object("encoding", "a")).to eql("byte_string")
             expect(redis.object("encoding", "b")).to eql("vecdeque")
             expect(redis.object("encoding", "c")).to eql("int")
           end

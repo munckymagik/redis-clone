@@ -10,8 +10,7 @@ pub type Database = HashMap<String, RObj>;
 #[derive(Debug, PartialEq)]
 pub enum RObj {
     Int(i64),
-    BString(ByteString),
-    String(String),
+    String(ByteString),
     List(VecDeque<String>),
 }
 
@@ -21,20 +20,11 @@ impl From<i64> for RObj {
     }
 }
 
-impl From<String> for RObj {
-    fn from(other: String) -> Self {
-        match other.parse::<i64>() {
-            Ok(n) => Self::Int(n),
-            Err(_) => Self::String(other),
-        }
-    }
-}
-
 impl From<ByteString> for RObj {
     fn from(other: ByteString) -> Self {
         match other.parse() {
             Ok(n) => Self::Int(n),
-            Err(_) => Self::BString(other),
+            Err(_) => Self::String(other),
         }
     }
 }
@@ -57,28 +47,10 @@ mod tests {
     }
 
     #[test]
-    fn test_from_string() {
-        let o: RObj = "a".to_owned().into();
-        assert_eq!(o, RObj::String("a".to_owned()));
-
-        let o: RObj = "1".to_owned().into();
-        assert_eq!(o, RObj::Int(1_i64));
-
-        let o: RObj = "-1".to_owned().into();
-        assert_eq!(o, RObj::Int(-1_i64));
-
-        let o: RObj = format!("{}", std::i64::MAX).into();
-        assert_eq!(o, RObj::Int(std::i64::MAX));
-
-        let o: RObj = format!("{}1", std::i64::MAX).into();
-        assert_eq!(o, RObj::String("92233720368547758071".to_owned()));
-    }
-
-    #[test]
-    fn test_from_bstring() {
-        // Non-numbers because BStrings
+    fn test_from_byte_string() {
+        // Non-numbers become Strings
         let o: RObj = ByteString::from("a").into();
-        assert_eq!(o, RObj::BString(ByteString::from("a")));
+        assert_eq!(o, RObj::String(ByteString::from("a")));
 
         // Numbers become Ints
         let o: RObj = ByteString::from("-123").into();
@@ -94,8 +66,8 @@ mod tests {
         let o: RObj = ByteString::from(min).into();
         assert_eq!(o, RObj::Int(std::i64::MIN));
 
-        // Overflowing the maximum value of an i64 results in a BString
+        // Overflowing the maximum value of an i64 results in a String
         let o: RObj = ByteString::from(format!("{}1", std::i64::MAX)).into();
-        assert_eq!(o, RObj::BString(ByteString::from("92233720368547758071")));
+        assert_eq!(o, RObj::String(ByteString::from("92233720368547758071")));
     }
 }

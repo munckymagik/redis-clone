@@ -56,7 +56,7 @@ RSpec.describe "Strings commands", include_connection: true do
       specify "encodes integers and characters differently" do
         redis.set("x", "a")
         expect(redis.object("encoding", "x")).to eql(
-          using_real_redis? ? "embstr" : "bstring"
+          using_real_redis? ? "embstr" : "byte_string"
         )
         redis.del("x")
 
@@ -97,7 +97,7 @@ RSpec.describe "Strings commands", include_connection: true do
       end
     end
 
-    it "supports binary data in the key and value" do
+    it "supports binary data in the value" do
       # Invalid UTF-8 sequence sourced from:
       #   https://stackoverflow.com/a/3886015/369171
       expect(redis.set("x", "\xe2\x28\xa1")).to eql("OK")
@@ -283,5 +283,4 @@ RSpec.describe "Strings commands", include_connection: true do
       end
     end
   end
-
 end
