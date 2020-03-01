@@ -5,7 +5,7 @@ use std::{
 };
 use byte_string::ByteString;
 
-pub type Database = HashMap<String, RObj>;
+pub type Database = HashMap<ByteString, RObj>;
 
 #[derive(Debug, PartialEq)]
 pub enum RObj {

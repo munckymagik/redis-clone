@@ -7,9 +7,9 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+byte_glob = { path = "./byte_glob" }
 byte_string = { path = "./byte_string" }
 log = "0.4.8"
 env_logger = "0.7.1"
 tokio = { version = "0.2.6", features = ["full"] }
 futures = "0.3.1"
-globber = "0.1.3"

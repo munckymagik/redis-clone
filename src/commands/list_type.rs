@@ -25,7 +25,7 @@ pub(crate) fn rpush_command(
     request: &Request,
     response: &mut Response,
 ) -> Result<()> {
-    let key = request.arg(0)?;
+    let key = request.bs_arg(0)?;
     let values = &request.bs_arguments()[1..];
 
     match db.get_mut(key) {
@@ -49,7 +49,7 @@ pub(crate) fn lpush_command(
     request: &Request,
     response: &mut Response,
 ) -> Result<()> {
-    let key = request.arg(0)?;
+    let key = request.bs_arg(0)?;
     let values = &request.bs_arguments()[1..];
 
     match db.get_mut(key) {
@@ -76,7 +76,7 @@ pub(crate) fn linsert_command(
     request: &Request,
     response: &mut Response,
 ) -> Result<()> {
-    let key = request.arg(0)?;
+    let key = request.bs_arg(0)?;
 
     match db.get_mut(key) {
         Some(RObj::List(ref mut list)) => {
@@ -113,7 +113,7 @@ pub(crate) fn rpop_command(
     request: &Request,
     response: &mut Response,
 ) -> Result<()> {
-    let key = request.arg(0)?;
+    let key = request.bs_arg(0)?;
 
     match db.get_mut(key) {
         Some(RObj::List(ref mut list)) => {
@@ -137,7 +137,7 @@ pub(crate) fn lpop_command(
     request: &Request,
     response: &mut Response,
 ) -> Result<()> {
-    let key = request.arg(0)?;
+    let key = request.bs_arg(0)?;
 
     match db.get_mut(key) {
         Some(RObj::List(ref mut list)) => {
@@ -161,7 +161,7 @@ pub(crate) fn llen_command(
     request: &Request,
     response: &mut Response,
 ) -> Result<()> {
-    let key = request.arg(0)?;
+    let key = request.bs_arg(0)?;
 
     match db.get(key) {
         Some(RObj::List(value)) => response.add_integer(value.len().try_into()?),
@@ -177,7 +177,7 @@ pub(crate) fn lindex_command(
     request: &Request,
     response: &mut Response,
 ) -> Result<()> {
-    let key = request.arg(0)?;
+    let key = request.bs_arg(0)?;
 
     match db.get(key) {
         Some(RObj::List(list)) => {
@@ -209,7 +209,7 @@ pub(crate) fn lset_command(
     request: &Request,
     response: &mut Response,
 ) -> Result<()> {
-    let key = request.arg(0)?;
+    let key = request.bs_arg(0)?;
 
     match db.get_mut(key) {
         Some(RObj::List(list)) => {
@@ -246,7 +246,7 @@ pub(crate) fn lrange_command(
     request: &Request,
     response: &mut Response,
 ) -> Result<()> {
-    let key = request.arg(0)?;
+    let key = request.bs_arg(0)?;
 
     match db.get(key) {
         Some(RObj::List(list)) => {
@@ -286,7 +286,7 @@ pub(crate) fn ltrim_command(
     request: &Request,
     response: &mut Response,
 ) -> Result<()> {
-    let key = request.arg(0)?;
+    let key = request.bs_arg(0)?;
 
     match db.get_mut(key) {
         Some(RObj::List(ref mut list)) => {
@@ -325,7 +325,7 @@ pub(crate) fn lrem_command(
     request: &Request,
     response: &mut Response,
 ) -> Result<()> {
-    let key = request.arg(0)?;
+    let key = request.bs_arg(0)?;
 
     match db.remove(key) {
         Some(RObj::List(list)) => {
@@ -359,7 +359,7 @@ pub(crate) fn lrem_command(
                 Box::new(filtered.iter().cloned())
             };
 
-            db.insert(key.to_string(), RObj::new_list_from(result_iter.cloned()));
+            db.insert(key.to_owned(), RObj::new_list_from(result_iter.cloned()));
             response.add_integer(removed);
         }
         Some(_) => response.add_reply_wrong_type(),

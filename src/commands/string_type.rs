@@ -12,8 +12,8 @@ pub(crate) fn set_command(
     request: &Request,
     response: &mut Response,
 ) -> Result<()> {
-    let key = request.arg(0)?;
-    let value = request.arg(1)?;
+    let key = request.bs_arg(0)?;
+    let value = request.bs_arg(1)?;
     let mut nx = false;
     let mut xx = false;
 
@@ -44,7 +44,7 @@ pub(crate) fn get_command(
     request: &Request,
     response: &mut Response,
 ) -> Result<()> {
-    let key = request.arg(0)?;
+    let key = request.bs_arg(0)?;
 
     match db.get(key) {
         Some(RObj::String(value)) => {
@@ -81,7 +81,7 @@ pub(crate) fn incrby_command(
     request: &Request,
     response: &mut Response,
 ) -> Result<()> {
-    let arg = ByteString::from(request.arg(1)?);
+    let arg = ByteString::from(request.bs_arg(1)?);
 
     if let Some(increment) = parse_i64_or_reply_with_error(response, &arg) {
         return general_incr(db, request, response, increment);
@@ -95,7 +95,7 @@ pub(crate) fn decrby_command(
     request: &Request,
     response: &mut Response,
 ) -> Result<()> {
-    let arg = ByteString::from(request.arg(1)?);
+    let arg = ByteString::from(request.bs_arg(1)?);
 
     if let Some(increment) = parse_i64_or_reply_with_error(response, &arg) {
         return general_incr(db, request, response, -increment);
@@ -110,13 +110,13 @@ fn general_incr(
     response: &mut Response,
     increment: i64,
 ) -> Result<()> {
-    let key = request.arg(0)?;
+    let key = request.bs_arg(0)?;
 
     match db.get(key) {
         Some(RObj::String(old_value)) => {
             if let Some(value) = parse_i64_or_reply_with_error(response, old_value) {
                 if let Some(new_value) = value.checked_add(increment) {
-                    db.insert(key.to_string(), ByteString::from(new_value.to_string()).into());
+                    db.insert(key.to_owned(), ByteString::from(new_value.to_string()).into());
                     response.add_integer(new_value);
                 } else {
                     response.add_error("ERR increment or decrement would overflow")
@@ -125,7 +125,7 @@ fn general_incr(
         }
         Some(RObj::Int(old_value)) => {
             if let Some(new_value) = old_value.checked_add(increment) {
-                db.insert(key.to_string(), new_value.into());
+                db.insert(key.to_owned(), new_value.into());
                 response.add_integer(new_value);
             } else {
                 response.add_error("ERR increment or decrement would overflow")
@@ -133,7 +133,7 @@ fn general_incr(
         }
         Some(_) => response.add_reply_wrong_type(),
         None => {
-            db.insert(key.to_string(), increment.into());
+            db.insert(key.to_owned(), increment.into());
             response.add_integer(increment);
         }
     }

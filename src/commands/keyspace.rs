@@ -5,7 +5,7 @@ use crate::{
     response::Response,
     response_ext::ResponseExt,
 };
-use globber::Pattern;
+use byte_glob;
 use std::convert::TryInto;
 
 pub(crate) fn del_command(
@@ -15,7 +15,7 @@ pub(crate) fn del_command(
 ) -> Result<()> {
     let mut count = 0;
 
-    for key in request.arguments() {
+    for key in request.bs_arguments() {
         if db.remove(key).is_some() {
             count += 1;
         }
@@ -33,7 +33,7 @@ pub(crate) fn exists_command(
 ) -> Result<()> {
     let mut count = 0;
 
-    for key in request.arguments() {
+    for key in request.bs_arguments() {
         if db.contains_key(key) {
             count += 1;
         }
@@ -49,20 +49,12 @@ pub(crate) fn keys_command(
     request: &Request,
     response: &mut Response,
 ) -> Result<()> {
-    let pattern = request.arg(0)?;
+    let pattern = request.bs_arg(0)?;
 
-    let results: Vec<_> = if pattern == "*" {
+    let results: Vec<_> = if pattern.as_ref() == b"*" {
         db.keys().collect()
     } else {
-        let matcher = match Pattern::new(pattern) {
-            Ok(m) => m,
-            Err(_) => {
-                response.add_array_len(0);
-                return Ok(());
-            }
-        };
-
-        db.keys().filter(|key| matcher.matches(key)).collect()
+        db.keys().filter(|key| byte_glob::glob(pattern, key)).collect()
     };
 
     response.add_array_len(results.len().try_into()?);
@@ -78,7 +70,7 @@ pub(crate) fn type_command(
     request: &Request,
     response: &mut Response,
 ) -> Result<()> {
-    let key = request.arg(0)?;
+    let key = request.bs_arg(0)?;
 
     match db.get(key) {
         Some(value) => {
@@ -113,7 +105,7 @@ pub(crate) fn object_command(
         Some(sub_command) => match sub_command.to_lowercase().as_ref() {
             "help" => response.add_reply_help(req.command(), OBJECT_HELP),
             "encoding" => {
-                let key = match req.maybe_arg(1) {
+                let key = match req.bs_maybe_arg(1) {
                     Some(k) => k,
                     None => {
                         response.add_reply_subcommand_syntax_error(req.command(), sub_command);

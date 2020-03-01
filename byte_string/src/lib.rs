@@ -48,7 +48,7 @@ impl Display for ByteStr<'_> {
     }
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, Eq, Hash, PartialEq)]
 pub struct ByteString {
     bytes: Vec<u8>,
 }
@@ -252,6 +252,13 @@ mod tests {
         let a = ByteString::from(b"hello");
         assert_as_ref(&a);
         assert_eq!(a.as_ref(), b"hello");
+    }
+
+    #[test]
+    fn test_byte_string_as_hashmap_key() {
+        use std::collections::HashMap;
+        let mut h = HashMap::new();
+        h.insert(ByteString::from("a"), 1);
     }
 
     #[test]
