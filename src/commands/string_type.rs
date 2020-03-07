@@ -17,10 +17,10 @@ pub(crate) fn set_command(
     let mut nx = false;
     let mut xx = false;
 
-    for arg in &request.arguments()[2..] {
+    for arg in &request.bs_arguments()[2..] {
         match arg.to_lowercase().as_ref() {
-            "nx" if !xx => nx = true,
-            "xx" if !nx => xx = true,
+            b"nx" if !xx => nx = true,
+            b"xx" if !nx => xx = true,
             _ => {
                 response.add_error("ERR syntax error");
                 return Ok(());

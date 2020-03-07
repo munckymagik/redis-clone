@@ -6,6 +6,7 @@ use crate::{
     request::{self, Request},
     response::Response,
 };
+use byte_string::ByteStr;
 use log::{debug, error, info};
 use std::{
     fmt::Debug,
@@ -44,7 +45,7 @@ fn start_api(mut db: Database) -> Sender<Message> {
             let request = message.request;
             let mut response = Response::new();
 
-            if let Some(cmd) = commands::lookup(request.command()) {
+            if let Some(cmd) = commands::lookup(request.bs_command()) {
                 api_handle_command(cmd, &mut db, &request, &mut response);
             } else {
                 let msg = format!(
@@ -76,7 +77,7 @@ fn api_handle_command(
         Ok(Err(e)) => {
             error!(
                 "ERROR handling command `{}` with args {}: '{}'",
-                cmd.name,
+                ByteStr::from(cmd.name),
                 request.argv_to_string(),
                 e
             );
@@ -85,7 +86,7 @@ fn api_handle_command(
         Err(_) => {
             error!(
                 "PANIC handling command `{}` with args {}",
-                cmd.name,
+                ByteStr::from(cmd.name),
                 request.argv_to_string(),
             );
             response.add_error("ERR server error");

@@ -1,11 +1,12 @@
 use crate::response::Response;
+use std::fmt::Display;
 use std::convert::TryInto;
 
 /// Helpers methods that extend Response with facilities more logically
 /// related to the command interactions than the protocol
 pub trait ResponseExt {
     fn add_reply_help(&mut self, command: &str, help: &[&str]);
-    fn add_reply_subcommand_syntax_error(&mut self, command: &str, sub_command: &str);
+    fn add_reply_subcommand_syntax_error<T: Display>(&mut self, command: &str, sub_command: T);
     fn add_reply_wrong_number_of_arguments(&mut self, command: &str);
     fn add_reply_wrong_type(&mut self);
     fn add_reply_not_a_number(&mut self);
@@ -17,7 +18,7 @@ impl ResponseExt for Response {
 
         let command = command.to_uppercase();
 
-        let lead = format!("{} <subcommand> arg arg ... arg. Subcommands are:", command,);
+        let lead = format!("{} <subcommand> arg arg ... arg. Subcommands are:", command);
 
         self.add_simple_string(&lead);
 
@@ -26,7 +27,7 @@ impl ResponseExt for Response {
         }
     }
 
-    fn add_reply_subcommand_syntax_error(&mut self, command: &str, sub_command: &str) {
+    fn add_reply_subcommand_syntax_error<T: Display>(&mut self, command: &str, sub_command: T) {
         let command = command.to_uppercase();
 
         let message = format!(

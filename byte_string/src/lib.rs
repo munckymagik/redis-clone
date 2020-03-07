@@ -125,6 +125,12 @@ impl AsRef<[u8]> for ByteString {
     }
 }
 
+impl Display for ByteString {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        self.as_byte_str().fmt(f)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -191,6 +197,18 @@ mod tests {
         // Slice/reference types are cloned
         let _c = ByteString::from(b"hello");
         let _d = ByteString::from("hello");
+    }
+
+    #[test]
+    fn test_byte_string_display() {
+        use std::fmt::Write;
+
+        let a = ByteString::from("hello");
+        let mut buf = String::new();
+
+        write!(buf, "{}", a).unwrap();
+
+        assert_eq!(buf, "hello")
     }
 
     #[test]

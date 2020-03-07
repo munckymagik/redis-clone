@@ -2,7 +2,7 @@ use crate::{
     errors::{Error, Result},
     protocol,
 };
-use byte_string::ByteString;
+use byte_string::{ByteStr, ByteString};
 use std::convert::{TryFrom, TryInto};
 use std::marker::Unpin;
 use tokio::io::AsyncBufRead;
@@ -19,19 +19,12 @@ pub struct Request {
 }
 
 impl Request {
-    pub fn maybe_arg(&self, index: usize) -> Option<&String> {
-        self.argv.get(index + 1)
-    }
-
     pub fn command(&self) -> &str {
         &self.argv[0]
     }
 
-    pub fn arg(&self, index: usize) -> Result<&String> {
-        self.maybe_arg(index).ok_or_else(|| {
-            let msg = format!("Argument at {} does not exist", index);
-            Error::from(msg)
-        })
+    pub fn bs_command(&self) -> ByteStr {
+        self.argb[0].as_byte_str()
     }
 
     pub fn bs_maybe_arg(&self, index: usize) -> Option<&ByteString> {
@@ -47,10 +40,6 @@ impl Request {
 
     pub fn arity(&self) -> i64 {
         self.argv.len().try_into().unwrap()
-    }
-
-    pub fn arguments(&self) -> &[String] {
-        &self.argv[1..]
     }
 
     pub fn bs_arguments(&self) -> &[ByteString] {
@@ -97,23 +86,23 @@ mod tests {
     #[test]
     fn test_try_into_request() {
         let input = vec![
-            ByteString::from("set"),
-            ByteString::from("x"),
-            ByteString::from("1"),
+            "set".into(),
+            "x".into(),
+            "1".into(),
         ];
         let request = Request::try_from(input).unwrap();
 
-        assert_eq!(request.command(), "set");
-        assert_eq!(request.arguments(), &["x", "1"]);
+        assert_eq!(request.bs_command(), ByteStr::from("set"));
+        assert_eq!(request.bs_arguments(), &["x".into(), "1".into()]);
     }
 
     #[test]
     fn test_try_into_request_no_args() {
-        let input = vec![ByteString::from("set")];
+        let input = vec!["set".into()];
         let request = Request::try_from(input).unwrap();
 
         assert_eq!(request.command(), "set");
-        assert_eq!(request.arguments(), &[] as &[&str]);
+        assert_eq!(request.bs_arguments(), &[] as &[ByteString]);
     }
 
     #[test]
@@ -126,10 +115,10 @@ mod tests {
     #[test]
     fn test_args_to_string() {
         let request = Request::try_from(vec![
-            ByteString::from("xxx"),
-            ByteString::from("1"),
-            ByteString::from("2"),
-            ByteString::from("3"),
+            "xxx".into(),
+            "1".into(),
+            "2".into(),
+            "3".into(),
         ]).unwrap();
 
         // Note: final comma is for consistency with real Redis
@@ -139,10 +128,10 @@ mod tests {
     #[test]
     fn test_arity() {
         let request = Request::try_from(vec![
-            ByteString::from("xxx"),
-            ByteString::from("1"),
-            ByteString::from("2"),
-            ByteString::from("3"),
+            "xxx".into(),
+            "1".into(),
+            "2".into(),
+            "3".into(),
         ]).unwrap();
 
         assert_eq!(request.arity(), 4);
@@ -151,22 +140,22 @@ mod tests {
     #[test]
     fn test_maybe_arg() {
         let request = Request::try_from(vec![
-            ByteString::from("xxx"),
-            ByteString::from("1"),
+            "xxx".into(),
+            "1".into(),
         ]).unwrap();
 
-        assert_eq!(request.maybe_arg(0), Some(&"1".to_string()));
-        assert_eq!(request.maybe_arg(1), None);
+        assert_eq!(request.bs_maybe_arg(0), Some(&ByteString::from("1")));
+        assert_eq!(request.bs_maybe_arg(1), None);
     }
 
     #[test]
     fn test_arg() {
         let request = Request::try_from(vec![
-            ByteString::from("xxx"),
-            ByteString::from("1"),
+            "xxx".into(),
+            "1".into(),
         ]).unwrap();
 
-        assert_eq!(request.arg(0), Ok(&"1".to_string()));
-        assert_eq!(request.arg(1), Err(Error::from("Argument at 1 does not exist")));
+        assert_eq!(request.bs_arg(0), Ok(&ByteString::from("1")));
+        assert_eq!(request.bs_arg(1), Err(Error::from("Argument at 1 does not exist")));
     }
 }

@@ -101,10 +101,10 @@ pub(crate) fn object_command(
     req: &Request,
     response: &mut Response,
 ) -> Result<()> {
-    match req.maybe_arg(0) {
+    match req.bs_maybe_arg(0) {
         Some(sub_command) => match sub_command.to_lowercase().as_ref() {
-            "help" => response.add_reply_help(req.command(), OBJECT_HELP),
-            "encoding" => {
+            b"help" => response.add_reply_help(req.command(), OBJECT_HELP),
+            b"encoding" => {
                 let key = match req.bs_maybe_arg(1) {
                     Some(k) => k,
                     None => {

@@ -13,15 +13,15 @@ const COMMAND_HELP: &[&str] = &[
 ];
 
 pub(crate) fn command_command(_: &mut Database, req: &Request, reply: &mut Response) -> Result<()> {
-    match req.maybe_arg(0) {
+    match req.bs_maybe_arg(0) {
         Some(sub_command) => match sub_command.to_lowercase().as_ref() {
-            "help" => reply.add_reply_help(req.command(), COMMAND_HELP),
-            "count" => reply.add_integer(COMMAND_TABLE.len().try_into()?),
-            "info" => {
-                let requested = &req.arguments()[1..];
+            b"help" => reply.add_reply_help(req.command(), COMMAND_HELP),
+            b"count" => reply.add_integer(COMMAND_TABLE.len().try_into()?),
+            b"info" => {
+                let requested = &req.bs_arguments()[1..];
                 reply.add_array_len(requested.len().try_into()?);
                 for cmd in requested {
-                    match super::lookup(&cmd) {
+                    match super::lookup(cmd.as_byte_str()) {
                         Some(cmd) => command_reply(reply, cmd),
                         None => reply.add_null_array(),
                     }
@@ -53,12 +53,12 @@ const DEBUG_HELP: &[&str] = &[
 ];
 
 pub(crate) fn debug_command(_: &mut Database, req: &Request, reply: &mut Response) -> Result<()> {
-    let sub_command = req.arg(0)?.to_lowercase();
+    let sub_command = req.bs_arg(0)?.to_lowercase();
 
     match sub_command.as_ref() {
-        "help" => reply.add_reply_help(req.command(), DEBUG_HELP),
-        "panic" => panic!("A deliberate panic from DEBUG PANIC"),
-        "error" => {
+        b"help" => reply.add_reply_help(req.command(), DEBUG_HELP),
+        b"panic" => panic!("A deliberate panic from DEBUG PANIC"),
+        b"error" => {
             return Err(Error::from("A deliberate error from DEBUG ERROR"));
         }
         _ => reply.add_reply_subcommand_syntax_error(req.command(), &sub_command),

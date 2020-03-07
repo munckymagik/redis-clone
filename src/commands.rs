@@ -1,6 +1,7 @@
 use crate::{
     db::Database, errors::Result, request::Request, response::Response, response_ext::ResponseExt,
 };
+use byte_string::ByteStr;
 
 mod keyspace;
 mod list_type;
@@ -10,7 +11,7 @@ mod string_type;
 type RedisCommandProc = fn(db: &mut Database, req: &Request, resp: &mut Response) -> Result<()>;
 
 pub struct RedisCommand<'a> {
-    pub name: &'a str,
+    pub name: &'a [u8],
     pub handler: RedisCommandProc,
     pub arity: i32,
 }
@@ -38,135 +39,134 @@ fn is_valid_arity(arity: i64, given: i64) -> bool {
 
 static COMMAND_TABLE: &[RedisCommand] = &[
     RedisCommand {
-        name: "get",
+        name: b"get",
         handler: string_type::get_command,
         arity: 2,
     },
     RedisCommand {
-        name: "set",
+        name: b"set",
         handler: string_type::set_command,
         arity: -3,
     },
     RedisCommand {
-        name: "del",
+        name: b"del",
         handler: keyspace::del_command,
         arity: -2,
     },
     RedisCommand {
-        name: "exists",
+        name: b"exists",
         handler: keyspace::exists_command,
         arity: -2,
     },
     RedisCommand {
-        name: "incr",
+        name: b"incr",
         handler: string_type::incr_command,
         arity: 2,
     },
     RedisCommand {
-        name: "decr",
+        name: b"decr",
         handler: string_type::decr_command,
         arity: 2,
     },
     RedisCommand {
-        name: "incrby",
+        name: b"incrby",
         handler: string_type::incrby_command,
         arity: 3,
     },
     RedisCommand {
-        name: "decrby",
+        name: b"decrby",
         handler: string_type::decrby_command,
         arity: 3,
     },
     RedisCommand {
-        name: "rpush",
+        name: b"rpush",
         handler: list_type::rpush_command,
         arity: -3,
     },
     RedisCommand {
-        name: "lpush",
+        name: b"lpush",
         handler: list_type::lpush_command,
         arity: -3,
     },
     RedisCommand {
-        name: "linsert",
+        name: b"linsert",
         handler: list_type::linsert_command,
         arity: 5,
     },
     RedisCommand {
-        name: "rpop",
+        name: b"rpop",
         handler: list_type::rpop_command,
         arity: 2,
     },
     RedisCommand {
-        name: "lpop",
+        name: b"lpop",
         handler: list_type::lpop_command,
         arity: 2,
     },
     RedisCommand {
-        name: "llen",
+        name: b"llen",
         handler: list_type::llen_command,
         arity: 2,
     },
     RedisCommand {
-        name: "lindex",
+        name: b"lindex",
         handler: list_type::lindex_command,
         arity: 3,
     },
     RedisCommand {
-        name: "lset",
+        name: b"lset",
         handler: list_type::lset_command,
         arity: 4,
     },
     RedisCommand {
-        name: "lrange",
+        name: b"lrange",
         handler: list_type::lrange_command,
         arity: 4,
     },
     RedisCommand {
-        name: "ltrim",
+        name: b"ltrim",
         handler: list_type::ltrim_command,
         arity: 4,
     },
     RedisCommand {
-        name: "lrem",
+        name: b"lrem",
         handler: list_type::lrem_command,
         arity: 4,
     },
     RedisCommand {
-        name: "command",
+        name: b"command",
         handler: server::command_command,
         arity: -1,
     },
     RedisCommand {
-        name: "debug",
+        name: b"debug",
         handler: server::debug_command,
         arity: -2,
     },
     RedisCommand {
-        name: "flushdb",
+        name: b"flushdb",
         handler: server::flushdb_command,
         arity: -1,
     },
     RedisCommand {
-        name: "keys",
+        name: b"keys",
         handler: keyspace::keys_command,
         arity: 2,
     },
     RedisCommand {
-        name: "type",
+        name: b"type",
         handler: keyspace::type_command,
         arity: 2,
     },
     RedisCommand {
-        name: "object",
+        name: b"object",
         handler: keyspace::object_command,
         arity: -2,
     },
 ];
 
-pub fn lookup(name: &str) -> Option<&RedisCommand> {
-    let name = name.to_lowercase();
-    COMMAND_TABLE.iter().find(|c| c.name == name)
+pub fn lookup(name: ByteStr) -> Option<&RedisCommand> {
+    COMMAND_TABLE.iter().find(|c| name.eq_ignore_ascii_case(c.name))
 }
 
 #[cfg(test)]
@@ -175,9 +175,9 @@ mod tests {
 
     #[test]
     fn test_lookup() {
-        assert!(lookup("get").is_some());
-        assert!(lookup("GET").is_some());
-        assert!(lookup("xxx").is_none());
+        assert!(lookup("get".into()).is_some());
+        assert!(lookup("GET".into()).is_some());
+        assert!(lookup("xxx".into()).is_none());
     }
 
     #[test]
