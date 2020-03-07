@@ -50,7 +50,7 @@ fn start_api(mut db: Database) -> Sender<Message> {
             } else {
                 let msg = format!(
                     "ERR unknown command `{}`, with args beginning with: {}",
-                    request.command(),
+                    request.bs_command(),
                     request.argv_to_string()
                 );
                 response.add_error(&msg);

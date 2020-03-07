@@ -19,10 +19,6 @@ pub struct Request {
 }
 
 impl Request {
-    pub fn command(&self) -> &str {
-        &self.argv[0]
-    }
-
     pub fn bs_command(&self) -> ByteStr {
         self.argb[0].as_byte_str()
     }
@@ -101,7 +97,7 @@ mod tests {
         let input = vec!["set".into()];
         let request = Request::try_from(input).unwrap();
 
-        assert_eq!(request.command(), "set");
+        assert_eq!(request.bs_command(), ByteStr::from("set"));
         assert_eq!(request.bs_arguments(), &[] as &[ByteString]);
     }
 

@@ -28,6 +28,24 @@ impl<'outer> ByteStr<'outer> {
     {
         self.bytes.eq_ignore_ascii_case(other.as_ref())
     }
+
+    pub fn to_lowercase(&self) -> ByteString {
+        let lowered_bytes = self.bytes
+            .iter()
+            .map(u8::to_ascii_lowercase)
+            .collect::<Vec<u8>>();
+
+        ByteString::from(lowered_bytes)
+    }
+
+    pub fn to_uppercase(&self) -> ByteString {
+        let uppered_bytes = self.bytes
+            .iter()
+            .map(u8::to_ascii_uppercase)
+            .collect::<Vec<u8>>();
+
+        ByteString::from(uppered_bytes)
+    }
 }
 
 impl<'outer, T> From<&'outer T> for ByteStr<'outer>
@@ -74,12 +92,11 @@ impl ByteString {
     }
 
     pub fn to_lowercase(&self) -> Self {
-        let lowered_bytes = self.bytes
-            .iter()
-            .map(u8::to_ascii_lowercase)
-            .collect::<Vec<u8>>();
+        self.as_byte_str().to_lowercase()
+    }
 
-        Self::from(lowered_bytes)
+    pub fn to_uppercase(&self) -> Self {
+        self.as_byte_str().to_uppercase()
     }
 }
 
@@ -268,9 +285,30 @@ mod tests {
     }
 
     #[test]
+    fn test_byte_str_to_lowercase() {
+        let a: ByteStr = "abcABC123\x01".into();
+        let b = a.to_lowercase();
+        assert_eq!(b, "abcabc123\x01".into())
+    }
+
+    #[test]
     fn test_byte_string_to_lowercase() {
         let a: ByteString = "abcABC123\x01".into();
         let b = a.to_lowercase();
         assert_eq!(b, "abcabc123\x01".into())
+    }
+
+    #[test]
+    fn test_byte_str_to_uppercase() {
+        let a: ByteStr = "abcABC123\x01".into();
+        let b = a.to_uppercase();
+        assert_eq!(b, "ABCABC123\x01".into())
+    }
+
+    #[test]
+    fn test_byte_string_to_uppercase() {
+        let a: ByteString = "abcABC123\x01".into();
+        let b = a.to_uppercase();
+        assert_eq!(b, "ABCABC123\x01".into())
     }
 }
