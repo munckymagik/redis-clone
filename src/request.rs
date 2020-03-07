@@ -14,7 +14,6 @@ pub async fn parse(stream: &mut (impl AsyncBufRead + Unpin + Send)) -> Result<Re
 
 #[derive(Debug, PartialEq)]
 pub struct Request {
-    argv: Vec<String>,
     argb: Vec<ByteString>,
 }
 
@@ -35,7 +34,7 @@ impl Request {
     }
 
     pub fn arity(&self) -> i64 {
-        self.argv.len().try_into().unwrap()
+        self.argb.len().try_into().unwrap()
     }
 
     pub fn bs_arguments(&self) -> &[ByteString] {
@@ -43,7 +42,7 @@ impl Request {
     }
 
     pub fn argv_to_string(&self) -> String {
-        self.argv[1..]
+        self.argb[1..]
             .iter()
             .map(|v| format!("`{}`,", v))
             .collect::<Vec<String>>()
@@ -55,21 +54,11 @@ impl TryFrom<Vec<ByteString>> for Request {
     type Error = Error;
 
     fn try_from(query: Vec<ByteString>) -> Result<Self> {
-        use std::result::Result as StdResult;
-
         if query.is_empty() {
             return Err(Error::EmptyRequest);
         }
 
-        let maybe_argv: StdResult<Vec<String>, _> = query
-            .iter()
-            .map(|v| String::from_utf8((**v).clone()))
-            .collect();
-
-        let argv = maybe_argv?;
-
         Ok(Request {
-            argv,
             argb: query,
         })
     }

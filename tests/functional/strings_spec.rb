@@ -97,11 +97,11 @@ RSpec.describe "Strings commands", include_connection: true do
       end
     end
 
-    it "supports binary data in the value" do
+    it "supports binary data in the key and the value" do
       # Invalid UTF-8 sequence sourced from:
       #   https://stackoverflow.com/a/3886015/369171
-      expect(redis.set("x", "\xe2\x28\xa1")).to eql("OK")
-      expect(redis.get("x")).to eql("\xe2\x28\xa1")
+      expect(redis.set("\xe2\x28\xa1", "\xe2\x28\xa1")).to eql("OK")
+      expect(redis.get("\xe2\x28\xa1")).to eql("\xe2\x28\xa1")
     end
   end
 
