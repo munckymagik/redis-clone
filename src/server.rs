@@ -45,12 +45,12 @@ fn start_api(mut db: Database) -> Sender<Message> {
             let request = message.request;
             let mut response = Response::new();
 
-            if let Some(cmd) = commands::lookup(request.bs_command()) {
+            if let Some(cmd) = commands::lookup(request.command()) {
                 api_handle_command(cmd, &mut db, &request, &mut response);
             } else {
                 let msg = format!(
                     "ERR unknown command `{}`, with args beginning with: {}",
-                    request.bs_command(),
+                    request.command(),
                     request.argv_to_string()
                 );
                 response.add_error(&msg);

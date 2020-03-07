@@ -10,7 +10,7 @@ use std::convert::TryInto;
 
 macro_rules! parse_arg_or_reply_with_err {
     ($idx:literal, $req:expr, $resp:expr) => {
-        match $req.bs_arg($idx)?.parse() {
+        match $req.arg($idx)?.parse() {
             Ok(n) => n,
             Err(_) => {
                 $resp.add_reply_not_a_number();
@@ -25,8 +25,8 @@ pub(crate) fn rpush_command(
     request: &Request,
     response: &mut Response,
 ) -> Result<()> {
-    let key = request.bs_arg(0)?;
-    let values = &request.bs_arguments()[1..];
+    let key = request.arg(0)?;
+    let values = &request.arguments()[1..];
 
     match db.get_mut(key) {
         Some(RObj::List(ref mut list)) => {
@@ -49,8 +49,8 @@ pub(crate) fn lpush_command(
     request: &Request,
     response: &mut Response,
 ) -> Result<()> {
-    let key = request.bs_arg(0)?;
-    let values = &request.bs_arguments()[1..];
+    let key = request.arg(0)?;
+    let values = &request.arguments()[1..];
 
     match db.get_mut(key) {
         Some(RObj::List(ref mut list)) => {
@@ -76,12 +76,12 @@ pub(crate) fn linsert_command(
     request: &Request,
     response: &mut Response,
 ) -> Result<()> {
-    let key = request.bs_arg(0)?;
+    let key = request.arg(0)?;
 
     match db.get_mut(key) {
         Some(RObj::List(ref mut list)) => {
-            let side = request.bs_arg(1)?;
-            let pivot = request.bs_arg(2)?;
+            let side = request.arg(1)?;
+            let pivot = request.arg(2)?;
 
             if let Some(idx) = list.iter().position(|elem| elem == pivot) {
                 let idx = match side.to_lowercase().as_ref() {
@@ -93,7 +93,7 @@ pub(crate) fn linsert_command(
                     }
                 };
 
-                let value = request.bs_arg(3)?;
+                let value = request.arg(3)?;
                 list.insert(idx, value.clone());
 
                 response.add_integer(list.len().try_into()?);
@@ -113,7 +113,7 @@ pub(crate) fn rpop_command(
     request: &Request,
     response: &mut Response,
 ) -> Result<()> {
-    let key = request.bs_arg(0)?;
+    let key = request.arg(0)?;
 
     match db.get_mut(key) {
         Some(RObj::List(ref mut list)) => {
@@ -137,7 +137,7 @@ pub(crate) fn lpop_command(
     request: &Request,
     response: &mut Response,
 ) -> Result<()> {
-    let key = request.bs_arg(0)?;
+    let key = request.arg(0)?;
 
     match db.get_mut(key) {
         Some(RObj::List(ref mut list)) => {
@@ -161,7 +161,7 @@ pub(crate) fn llen_command(
     request: &Request,
     response: &mut Response,
 ) -> Result<()> {
-    let key = request.bs_arg(0)?;
+    let key = request.arg(0)?;
 
     match db.get(key) {
         Some(RObj::List(value)) => response.add_integer(value.len().try_into()?),
@@ -177,7 +177,7 @@ pub(crate) fn lindex_command(
     request: &Request,
     response: &mut Response,
 ) -> Result<()> {
-    let key = request.bs_arg(0)?;
+    let key = request.arg(0)?;
 
     match db.get(key) {
         Some(RObj::List(list)) => {
@@ -209,7 +209,7 @@ pub(crate) fn lset_command(
     request: &Request,
     response: &mut Response,
 ) -> Result<()> {
-    let key = request.bs_arg(0)?;
+    let key = request.arg(0)?;
 
     match db.get_mut(key) {
         Some(RObj::List(list)) => {
@@ -224,7 +224,7 @@ pub(crate) fn lset_command(
             let index: usize = index.try_into()?;
 
             if let Some(existing_value) = list.get_mut(index) {
-                let new_value = request.bs_arg(2)?;
+                let new_value = request.arg(2)?;
                 existing_value.clear();
                 existing_value.extend(new_value.as_ref());
                 existing_value.shrink_to_fit();
@@ -246,7 +246,7 @@ pub(crate) fn lrange_command(
     request: &Request,
     response: &mut Response,
 ) -> Result<()> {
-    let key = request.bs_arg(0)?;
+    let key = request.arg(0)?;
 
     match db.get(key) {
         Some(RObj::List(list)) => {
@@ -286,7 +286,7 @@ pub(crate) fn ltrim_command(
     request: &Request,
     response: &mut Response,
 ) -> Result<()> {
-    let key = request.bs_arg(0)?;
+    let key = request.arg(0)?;
 
     match db.get_mut(key) {
         Some(RObj::List(ref mut list)) => {
@@ -325,12 +325,12 @@ pub(crate) fn lrem_command(
     request: &Request,
     response: &mut Response,
 ) -> Result<()> {
-    let key = request.bs_arg(0)?;
+    let key = request.arg(0)?;
 
     match db.remove(key) {
         Some(RObj::List(list)) => {
             let mut to_remove: i64 = parse_arg_or_reply_with_err!(1, request, response);
-            let obj = request.bs_arg(2)?;
+            let obj = request.arg(2)?;
             let mut removed = 0;
             let mut reverse = false;
 

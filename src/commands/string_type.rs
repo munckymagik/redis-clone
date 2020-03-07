@@ -12,12 +12,12 @@ pub(crate) fn set_command(
     request: &Request,
     response: &mut Response,
 ) -> Result<()> {
-    let key = request.bs_arg(0)?;
-    let value = request.bs_arg(1)?;
+    let key = request.arg(0)?;
+    let value = request.arg(1)?;
     let mut nx = false;
     let mut xx = false;
 
-    for arg in &request.bs_arguments()[2..] {
+    for arg in &request.arguments()[2..] {
         match arg.to_lowercase().as_ref() {
             b"nx" if !xx => nx = true,
             b"xx" if !nx => xx = true,
@@ -44,7 +44,7 @@ pub(crate) fn get_command(
     request: &Request,
     response: &mut Response,
 ) -> Result<()> {
-    let key = request.bs_arg(0)?;
+    let key = request.arg(0)?;
 
     match db.get(key) {
         Some(RObj::String(value)) => {
@@ -81,7 +81,7 @@ pub(crate) fn incrby_command(
     request: &Request,
     response: &mut Response,
 ) -> Result<()> {
-    let arg = ByteString::from(request.bs_arg(1)?);
+    let arg = ByteString::from(request.arg(1)?);
 
     if let Some(increment) = parse_i64_or_reply_with_error(response, &arg) {
         return general_incr(db, request, response, increment);
@@ -95,7 +95,7 @@ pub(crate) fn decrby_command(
     request: &Request,
     response: &mut Response,
 ) -> Result<()> {
-    let arg = ByteString::from(request.bs_arg(1)?);
+    let arg = ByteString::from(request.arg(1)?);
 
     if let Some(increment) = parse_i64_or_reply_with_error(response, &arg) {
         return general_incr(db, request, response, -increment);
@@ -110,7 +110,7 @@ fn general_incr(
     response: &mut Response,
     increment: i64,
 ) -> Result<()> {
-    let key = request.bs_arg(0)?;
+    let key = request.arg(0)?;
 
     match db.get(key) {
         Some(RObj::String(old_value)) => {

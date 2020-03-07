@@ -14,35 +14,35 @@ pub async fn parse(stream: &mut (impl AsyncBufRead + Unpin + Send)) -> Result<Re
 
 #[derive(Debug, PartialEq)]
 pub struct Request {
-    argb: Vec<ByteString>,
+    query: Vec<ByteString>,
 }
 
 impl Request {
-    pub fn bs_command(&self) -> ByteStr {
-        self.argb[0].as_byte_str()
+    pub fn command(&self) -> ByteStr {
+        self.query[0].as_byte_str()
     }
 
-    pub fn bs_maybe_arg(&self, index: usize) -> Option<&ByteString> {
-        self.argb.get(index + 1)
+    pub fn maybe_arg(&self, index: usize) -> Option<&ByteString> {
+        self.query.get(index + 1)
     }
 
-    pub fn bs_arg(&self, index: usize) -> Result<&ByteString> {
-        self.bs_maybe_arg(index).ok_or_else(|| {
+    pub fn arg(&self, index: usize) -> Result<&ByteString> {
+        self.maybe_arg(index).ok_or_else(|| {
             let msg = format!("Argument at {} does not exist", index);
             Error::from(msg)
         })
     }
 
     pub fn arity(&self) -> i64 {
-        self.argb.len().try_into().unwrap()
+        self.query.len().try_into().unwrap()
     }
 
-    pub fn bs_arguments(&self) -> &[ByteString] {
-        &self.argb[1..]
+    pub fn arguments(&self) -> &[ByteString] {
+        &self.query[1..]
     }
 
     pub fn argv_to_string(&self) -> String {
-        self.argb[1..]
+        self.query[1..]
             .iter()
             .map(|v| format!("`{}`,", v))
             .collect::<Vec<String>>()
@@ -59,7 +59,7 @@ impl TryFrom<Vec<ByteString>> for Request {
         }
 
         Ok(Request {
-            argb: query,
+            query,
         })
     }
 }
@@ -77,8 +77,8 @@ mod tests {
         ];
         let request = Request::try_from(input).unwrap();
 
-        assert_eq!(request.bs_command(), ByteStr::from("set"));
-        assert_eq!(request.bs_arguments(), &["x".into(), "1".into()]);
+        assert_eq!(request.command(), ByteStr::from("set"));
+        assert_eq!(request.arguments(), &["x".into(), "1".into()]);
     }
 
     #[test]
@@ -86,8 +86,8 @@ mod tests {
         let input = vec!["set".into()];
         let request = Request::try_from(input).unwrap();
 
-        assert_eq!(request.bs_command(), ByteStr::from("set"));
-        assert_eq!(request.bs_arguments(), &[] as &[ByteString]);
+        assert_eq!(request.command(), ByteStr::from("set"));
+        assert_eq!(request.arguments(), &[] as &[ByteString]);
     }
 
     #[test]
@@ -129,8 +129,8 @@ mod tests {
             "1".into(),
         ]).unwrap();
 
-        assert_eq!(request.bs_maybe_arg(0), Some(&ByteString::from("1")));
-        assert_eq!(request.bs_maybe_arg(1), None);
+        assert_eq!(request.maybe_arg(0), Some(&ByteString::from("1")));
+        assert_eq!(request.maybe_arg(1), None);
     }
 
     #[test]
@@ -140,7 +140,7 @@ mod tests {
             "1".into(),
         ]).unwrap();
 
-        assert_eq!(request.bs_arg(0), Ok(&ByteString::from("1")));
-        assert_eq!(request.bs_arg(1), Err(Error::from("Argument at 1 does not exist")));
+        assert_eq!(request.arg(0), Ok(&ByteString::from("1")));
+        assert_eq!(request.arg(1), Err(Error::from("Argument at 1 does not exist")));
     }
 }

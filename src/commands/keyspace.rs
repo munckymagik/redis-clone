@@ -15,7 +15,7 @@ pub(crate) fn del_command(
 ) -> Result<()> {
     let mut count = 0;
 
-    for key in request.bs_arguments() {
+    for key in request.arguments() {
         if db.remove(key).is_some() {
             count += 1;
         }
@@ -33,7 +33,7 @@ pub(crate) fn exists_command(
 ) -> Result<()> {
     let mut count = 0;
 
-    for key in request.bs_arguments() {
+    for key in request.arguments() {
         if db.contains_key(key) {
             count += 1;
         }
@@ -49,7 +49,7 @@ pub(crate) fn keys_command(
     request: &Request,
     response: &mut Response,
 ) -> Result<()> {
-    let pattern = request.bs_arg(0)?;
+    let pattern = request.arg(0)?;
 
     let results: Vec<_> = if pattern.as_ref() == b"*" {
         db.keys().collect()
@@ -70,7 +70,7 @@ pub(crate) fn type_command(
     request: &Request,
     response: &mut Response,
 ) -> Result<()> {
-    let key = request.bs_arg(0)?;
+    let key = request.arg(0)?;
 
     match db.get(key) {
         Some(value) => {
@@ -101,14 +101,14 @@ pub(crate) fn object_command(
     req: &Request,
     response: &mut Response,
 ) -> Result<()> {
-    match req.bs_maybe_arg(0) {
+    match req.maybe_arg(0) {
         Some(sub_command) => match sub_command.to_lowercase().as_ref() {
-            b"help" => response.add_reply_help(req.bs_command(), OBJECT_HELP),
+            b"help" => response.add_reply_help(req.command(), OBJECT_HELP),
             b"encoding" => {
-                let key = match req.bs_maybe_arg(1) {
+                let key = match req.maybe_arg(1) {
                     Some(k) => k,
                     None => {
-                        response.add_reply_subcommand_syntax_error(req.bs_command(), sub_command);
+                        response.add_reply_subcommand_syntax_error(req.command(), sub_command);
                         return Ok(());
                     }
                 };
@@ -128,10 +128,10 @@ pub(crate) fn object_command(
                     }
                 }
             }
-            _ => response.add_reply_subcommand_syntax_error(req.bs_command(), sub_command),
+            _ => response.add_reply_subcommand_syntax_error(req.command(), sub_command),
         },
         None => {
-            response.add_reply_subcommand_syntax_error(req.bs_command(), "(none)");
+            response.add_reply_subcommand_syntax_error(req.command(), "(none)");
         }
     }
 
