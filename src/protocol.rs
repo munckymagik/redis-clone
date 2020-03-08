@@ -11,13 +11,14 @@ const MAX_LINE_LENGTH: usize = 64 * 1024;
 const LF: u8 = b'\n';
 const CRLF: &[u8] = b"\r\n";
 
-use byte_string::ByteString;
+use byte_string::{ByteStr, ByteString};
 use std::convert::{TryFrom, TryInto};
 use std::marker::Unpin;
 use tokio::io::{AsyncBufRead, AsyncBufReadExt, AsyncReadExt};
 
 pub async fn decode<T: AsyncBufRead + Unpin + Send>(mut stream: T) -> ProtoResult<Vec<ByteString>> {
-    let (type_sym, value_str) = read_header(&mut stream).await?;
+    let mut buffer = vec![];
+    let (type_sym, value_str) = read_header(&mut stream, &mut buffer).await?;
 
     if type_sym != b'*' {
         return Err(ProtoError::UnsupportedSymbol(type_sym.into()));
@@ -28,17 +29,17 @@ pub async fn decode<T: AsyncBufRead + Unpin + Send>(mut stream: T) -> ProtoResul
     Ok(value)
 }
 
-async fn read_header(stream: &mut (impl AsyncBufRead + Unpin + Send)) -> ProtoResult<(u8, String)> {
-    let mut buffer = vec![];
-    read_line(stream, &mut buffer).await?;
+async fn read_header<'a>(
+    stream: &mut (impl AsyncBufRead + Unpin + Send),
+    buffer: &'a mut Vec<u8>
+) -> ProtoResult<(u8, ByteStr<'a>)> {
+    read_line(stream, buffer).await?;
 
     let (&type_sym, tail) = buffer
         .split_first()
         .ok_or_else(|| ProtoError::from("Error parsing resp header structure"))?;
 
-    let tail = std::str::from_utf8(tail)?.to_owned();
-
-    Ok((type_sym, tail))
+    Ok((type_sym, ByteStr::from(tail)))
 }
 
 async fn read_line(
@@ -107,9 +108,12 @@ async fn read_array(
     }
 
     let mut elements = Vec::with_capacity(len);
+    let mut buffer = vec![];
 
     for _ in 0..len {
-        let (type_sym, value_str) = read_header(stream).await?;
+        buffer.clear();
+
+        let (type_sym, value_str) = read_header(stream, &mut buffer).await?;
         if type_sym != b'$' {
             return Err(ProtoError::UnsupportedSymbol(type_sym.into()));
         }

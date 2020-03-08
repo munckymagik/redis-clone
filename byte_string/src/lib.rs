@@ -29,6 +29,10 @@ impl<'outer> ByteStr<'outer> {
         self.bytes.eq_ignore_ascii_case(other.as_ref())
     }
 
+    pub fn parse<T: Number>(&self) -> Result<T, ParseIntError> {
+        from_bytes(self)
+    }
+
     pub fn to_lowercase(&self) -> ByteString {
         let lowered_bytes = self.bytes
             .iter()
@@ -119,6 +123,14 @@ where
 {
     fn from(other: &T) -> Self {
         ByteString { bytes: other.as_ref().to_vec() }
+    }
+}
+
+impl<'a> std::ops::Deref for ByteStr<'a> {
+    type Target = &'a [u8];
+
+    fn deref(&self) -> &Self::Target {
+        &self.bytes
     }
 }
 
@@ -229,6 +241,12 @@ mod tests {
     }
 
     #[test]
+    fn test_byte_str_deref() {
+        let a = ByteStr::from(b"hello");
+        assert_eq!(a.len(), 5);
+    }
+
+    #[test]
     fn test_byte_string_deref() {
         let a = ByteString::from(b"hello");
         assert_eq!(a.len(), 5);
@@ -276,6 +294,12 @@ mod tests {
         let a: ByteString = "a".into();
         let b = a.clone();
         assert_eq!(a, b);
+    }
+
+    #[test]
+    fn test_byte_str_parse() {
+        assert_eq!(ByteStr::from(b"1").parse::<i64>(), Ok(1i64));
+        assert_eq!(ByteStr::from(b"x").parse::<i64>(), Err(ParseIntError));
     }
 
     #[test]
