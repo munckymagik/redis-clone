@@ -334,7 +334,8 @@ pub(crate) fn lrem_command(
             let mut removed = 0;
             let mut reverse = false;
 
-            let maybe_rev_iter: Box<dyn DoubleEndedIterator<Item = &ByteString>> = if to_remove < 0 {
+            let maybe_rev_iter: Box<dyn DoubleEndedIterator<Item = &ByteString>> = if to_remove < 0
+            {
                 to_remove = -to_remove;
                 reverse = true;
                 Box::new(list.iter().rev())

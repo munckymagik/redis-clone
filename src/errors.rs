@@ -46,7 +46,7 @@ impl PartialEq for Error {
             (&Self::Proto(ref a), &Self::Proto(ref b)) => a == b,
             (&Self::CastingInt(ref a), &Self::CastingInt(ref b)) => a == b,
             (&Self::Utf8Error(_), &Self::Utf8Error(_)) => false, // cannot be compared
-            (&Self::Io(_), &Self::Io(_)) => false, // cannot be compared
+            (&Self::Io(_), &Self::Io(_)) => false,               // cannot be compared
             _ => false,
         }
     }
@@ -90,7 +90,6 @@ impl From<std::string::FromUtf8Error> for Error {
         Self::Utf8Error(other)
     }
 }
-
 
 #[cfg(test)]
 mod tests {

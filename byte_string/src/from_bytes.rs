@@ -57,8 +57,11 @@ pub(crate) fn from_bytes<T: Number>(string: &[u8]) -> Result<T, ParseIntError> {
 
     for &c in digits {
         let digit: u32 = (c as char).to_digit(10).ok_or(ParseIntError)?;
+        let signed_digit = T::from(digit)
+            .checked_mul(sign_factor)
+            .ok_or(ParseIntError)?;
+
         result = result.checked_mul(T::from(10)).ok_or(ParseIntError)?;
-        let signed_digit = T::from(digit).checked_mul(sign_factor).ok_or(ParseIntError)?;
         result = result.checked_add(signed_digit).ok_or(ParseIntError)?;
     }
 
@@ -86,7 +89,10 @@ mod tests {
             assert_eq!(from_bytes::<$t>(b"x"), Err(ParseIntError));
 
             // The final mul by the radix will overflow
-            assert_eq!(from_bytes::<$t>(b"92233720368547758071"), Err(ParseIntError));
+            assert_eq!(
+                from_bytes::<$t>(b"92233720368547758071"),
+                Err(ParseIntError)
+            );
 
             // The adding the final 8 digit will overflow
             assert_eq!(from_bytes::<$t>(b"9223372036854775808"), Err(ParseIntError));

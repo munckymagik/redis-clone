@@ -116,7 +116,10 @@ fn general_incr(
         Some(RObj::String(old_value)) => {
             if let Some(value) = parse_i64_or_reply_with_error(response, old_value) {
                 if let Some(new_value) = value.checked_add(increment) {
-                    db.insert(key.to_owned(), ByteString::from(new_value.to_string()).into());
+                    db.insert(
+                        key.to_owned(),
+                        ByteString::from(new_value.to_string()).into(),
+                    );
                     response.add_integer(new_value);
                 } else {
                     response.add_error("ERR increment or decrement would overflow")

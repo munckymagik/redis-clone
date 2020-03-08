@@ -58,9 +58,7 @@ impl TryFrom<Vec<ByteString>> for Request {
             return Err(Error::EmptyRequest);
         }
 
-        Ok(Request {
-            query,
-        })
+        Ok(Request { query })
     }
 }
 
@@ -70,11 +68,7 @@ mod tests {
 
     #[test]
     fn test_try_into_request() {
-        let input = vec![
-            "set".into(),
-            "x".into(),
-            "1".into(),
-        ];
+        let input = vec!["set".into(), "x".into(), "1".into()];
         let request = Request::try_from(input).unwrap();
 
         assert_eq!(request.command(), ByteStr::from("set"));
@@ -99,12 +93,8 @@ mod tests {
 
     #[test]
     fn test_args_to_string() {
-        let request = Request::try_from(vec![
-            "xxx".into(),
-            "1".into(),
-            "2".into(),
-            "3".into(),
-        ]).unwrap();
+        let request =
+            Request::try_from(vec!["xxx".into(), "1".into(), "2".into(), "3".into()]).unwrap();
 
         // Note: final comma is for consistency with real Redis
         assert_eq!(request.argv_to_string(), "`1`, `2`, `3`,");
@@ -112,22 +102,15 @@ mod tests {
 
     #[test]
     fn test_arity() {
-        let request = Request::try_from(vec![
-            "xxx".into(),
-            "1".into(),
-            "2".into(),
-            "3".into(),
-        ]).unwrap();
+        let request =
+            Request::try_from(vec!["xxx".into(), "1".into(), "2".into(), "3".into()]).unwrap();
 
         assert_eq!(request.arity(), 4);
     }
 
     #[test]
     fn test_maybe_arg() {
-        let request = Request::try_from(vec![
-            "xxx".into(),
-            "1".into(),
-        ]).unwrap();
+        let request = Request::try_from(vec!["xxx".into(), "1".into()]).unwrap();
 
         assert_eq!(request.maybe_arg(0), Some(&ByteString::from("1")));
         assert_eq!(request.maybe_arg(1), None);
@@ -135,12 +118,12 @@ mod tests {
 
     #[test]
     fn test_arg() {
-        let request = Request::try_from(vec![
-            "xxx".into(),
-            "1".into(),
-        ]).unwrap();
+        let request = Request::try_from(vec!["xxx".into(), "1".into()]).unwrap();
 
         assert_eq!(request.arg(0), Ok(&ByteString::from("1")));
-        assert_eq!(request.arg(1), Err(Error::from("Argument at 1 does not exist")));
+        assert_eq!(
+            request.arg(1),
+            Err(Error::from("Argument at 1 does not exist"))
+        );
     }
 }

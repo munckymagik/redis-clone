@@ -12,9 +12,11 @@ pub struct ByteStr<'inner> {
 impl<'outer> ByteStr<'outer> {
     pub fn new<T>(other: &'outer T) -> Self
     where
-        T: AsRef<[u8]> + ?Sized
+        T: AsRef<[u8]> + ?Sized,
     {
-        ByteStr { bytes: other.as_ref() }
+        ByteStr {
+            bytes: other.as_ref(),
+        }
     }
 
     pub fn to_str_lossy(&self) -> Cow<str> {
@@ -23,7 +25,7 @@ impl<'outer> ByteStr<'outer> {
 
     pub fn eq_ignore_ascii_case<T>(&self, other: T) -> bool
     where
-        T: AsRef<[u8]>
+        T: AsRef<[u8]>,
     {
         self.bytes.eq_ignore_ascii_case(other.as_ref())
     }
@@ -33,7 +35,8 @@ impl<'outer> ByteStr<'outer> {
     }
 
     pub fn to_lowercase(&self) -> ByteString {
-        let lowered_bytes = self.bytes
+        let lowered_bytes = self
+            .bytes
             .iter()
             .map(u8::to_ascii_lowercase)
             .collect::<Vec<u8>>();
@@ -42,7 +45,8 @@ impl<'outer> ByteStr<'outer> {
     }
 
     pub fn to_uppercase(&self) -> ByteString {
-        let uppered_bytes = self.bytes
+        let uppered_bytes = self
+            .bytes
             .iter()
             .map(u8::to_ascii_uppercase)
             .collect::<Vec<u8>>();
@@ -87,15 +91,16 @@ mod impl_from {
 
     impl<'outer, T> From<&'outer T> for ByteStr<'outer>
     where
-        T: AsRef<[u8]> + ?Sized
+        T: AsRef<[u8]> + ?Sized,
     {
         fn from(other: &'outer T) -> Self {
-            ByteStr { bytes: other.as_ref() }
+            ByteStr {
+                bytes: other.as_ref(),
+            }
         }
     }
 
-    impl From<Vec<u8>> for ByteString
-    {
+    impl From<Vec<u8>> for ByteString {
         fn from(other: Vec<u8>) -> Self {
             ByteString { bytes: other }
         }
@@ -103,16 +108,20 @@ mod impl_from {
 
     impl From<String> for ByteString {
         fn from(other: String) -> Self {
-            ByteString { bytes: other.into_bytes() }
+            ByteString {
+                bytes: other.into_bytes(),
+            }
         }
     }
 
     impl<T> From<&T> for ByteString
     where
-        T: AsRef<[u8]> + ?Sized
+        T: AsRef<[u8]> + ?Sized,
     {
         fn from(other: &T) -> Self {
-            ByteString { bytes: other.as_ref().to_vec() }
+            ByteString {
+                bytes: other.as_ref().to_vec(),
+            }
         }
     }
 }

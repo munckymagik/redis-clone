@@ -31,7 +31,7 @@ pub async fn decode<T: AsyncBufRead + Unpin + Send>(mut stream: T) -> ProtoResul
 
 async fn read_header<'a>(
     stream: &mut (impl AsyncBufRead + Unpin + Send),
-    buffer: &'a mut Vec<u8>
+    buffer: &'a mut Vec<u8>,
 ) -> ProtoResult<(u8, ByteStr<'a>)> {
     read_line(stream, buffer).await?;
 
@@ -230,10 +230,7 @@ mod test {
         let result = decode(input);
         assert_eq!(
             result.await.unwrap(),
-            vec![
-                ByteString::from("abc\r\ndef"),
-                ByteString::from("123"),
-            ]
+            vec![ByteString::from("abc\r\ndef"), ByteString::from("123"),]
         );
     }
 

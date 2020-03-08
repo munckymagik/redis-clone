@@ -3,7 +3,7 @@
 //! to match binary data.
 
 macro_rules! handle_asterisk {
-    ($pattern:ident, $string:ident) => ({
+    ($pattern:ident, $string:ident) => {{
         // Skip over repeated asterisks
         while let Some(b'*') = $pattern.get(1) {
             $pattern = &$pattern[1..];
@@ -30,7 +30,7 @@ macro_rules! handle_asterisk {
             // again
             $string = &$string[1..];
         }
-    })
+    }};
 }
 
 #[inline(always)]
@@ -45,7 +45,7 @@ fn byte_range(start: u8, end: u8) -> std::ops::RangeInclusive<u8> {
 }
 
 macro_rules! handle_range {
-    ($pattern:ident, $string:ident) => ({
+    ($pattern:ident, $string:ident) => {{
         let mut found = false;
 
         // Advance to the first range character
@@ -57,7 +57,7 @@ macro_rules! handle_range {
                 // Advance to the next character
                 $pattern = &$pattern[1..];
                 true
-            },
+            }
             _ => false,
         };
 
@@ -118,11 +118,11 @@ macro_rules! handle_range {
 
         // We found a match, advance the string
         $string = &$string[1..];
-    })
+    }};
 }
 
 macro_rules! handle_literal {
-    ($pattern:ident, $string:ident) => ({
+    ($pattern:ident, $string:ident) => {{
         if $pattern[0] == b'\\' && $pattern.len() > 1 {
             // The current pattern char is the escape and this is not
             // the last char in the pattern, so we advance to the next
@@ -135,7 +135,7 @@ macro_rules! handle_literal {
         }
 
         $string = &$string[1..];
-    });
+    }};
 }
 
 pub fn glob(pattern: &[u8], string: &[u8]) -> bool {

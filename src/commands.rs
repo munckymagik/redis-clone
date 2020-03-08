@@ -166,7 +166,9 @@ static COMMAND_TABLE: &[RedisCommand] = &[
 ];
 
 pub fn lookup(name: ByteStr) -> Option<&RedisCommand> {
-    COMMAND_TABLE.iter().find(|c| name.eq_ignore_ascii_case(c.name))
+    COMMAND_TABLE
+        .iter()
+        .find(|c| name.eq_ignore_ascii_case(c.name))
 }
 
 #[cfg(test)]

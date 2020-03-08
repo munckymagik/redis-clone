@@ -1,9 +1,9 @@
+use byte_string::ByteString;
 use std::{
     collections::HashMap,
     collections::VecDeque,
     iter::{FromIterator, IntoIterator},
 };
-use byte_string::ByteString;
 
 pub type Database = HashMap<ByteString, RObj>;
 

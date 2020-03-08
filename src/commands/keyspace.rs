@@ -54,7 +54,9 @@ pub(crate) fn keys_command(
     let results: Vec<_> = if pattern.as_ref() == b"*" {
         db.keys().collect()
     } else {
-        db.keys().filter(|key| byte_glob::glob(pattern, key)).collect()
+        db.keys()
+            .filter(|key| byte_glob::glob(pattern, key))
+            .collect()
     };
 
     response.add_array_len(results.len().try_into()?);
@@ -108,7 +110,10 @@ pub(crate) fn object_command(
                 let key = match req.maybe_arg(1) {
                     Some(k) => k,
                     None => {
-                        response.add_reply_subcommand_syntax_error(req.command(), sub_command.as_byte_str());
+                        response.add_reply_subcommand_syntax_error(
+                            req.command(),
+                            sub_command.as_byte_str(),
+                        );
                         return Ok(());
                     }
                 };
@@ -128,7 +133,9 @@ pub(crate) fn object_command(
                     }
                 }
             }
-            _ => response.add_reply_subcommand_syntax_error(req.command(), sub_command.as_byte_str()),
+            _ => {
+                response.add_reply_subcommand_syntax_error(req.command(), sub_command.as_byte_str())
+            }
         },
         None => {
             response.add_reply_subcommand_syntax_error(req.command(), "(none)".into());
