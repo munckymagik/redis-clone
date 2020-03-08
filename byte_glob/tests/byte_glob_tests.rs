@@ -138,6 +138,7 @@ fn test_range_match() {
     // When there is no closing delimeter,
     assert!(!glob(b"[", b"["));
     assert!(glob(b"\\[", b"["));
+    assert!(!glob(b"[\\", b"["));
     // weirdly these work even on real Redis
     assert!(glob(b"[123\\]", b"2"));
     assert!(glob(b"[123", b"2"));

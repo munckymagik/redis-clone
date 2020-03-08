@@ -46,60 +46,61 @@ fn byte_range(start: u8, end: u8) -> std::ops::RangeInclusive<u8> {
 
 macro_rules! handle_range {
     ($pattern:ident, $string:ident) => ({
+        let mut found = false;
+
         // Advance to the first range character
         $pattern = &$pattern[1..];
 
-        // Catch the case where the opening brace is the last character
-        // of the match and has not been escaped
-        if $pattern.is_empty() {
-            return false;
-        }
+        // Detect the "not" flag
+        let not = match $pattern.get(0) {
+            Some(b'^') => {
+                // Advance to the next character
+                $pattern = &$pattern[1..];
+                true
+            },
+            _ => false,
+        };
 
-        let mut found = false;
-        let not = $pattern[0] == b'^';
-
-        if not {
-            // "Not" flag detected, advance to the next character
-            $pattern = &$pattern[1..];
-        }
+        let string_head: u8 = *$string.get(0).expect("string was exhausted");
 
         loop {
-            // Defend against unexpectedly exhausted pattern. E.g if
-            // there is a stray '-' at the end of the range expression.
-            if $pattern.is_empty() {
-                break;
-            }
-
-            match $pattern[0] {
+            match $pattern.get(0) {
                 // We must test the escape before the closing square
                 // bracket so we can escape a closing square
                 // bracket
-                b'\\' => {
+                Some(b'\\') => {
                     // Advance the pattern to the char
                     // being escaped
                     $pattern = &$pattern[1..];
 
                     // Do a literal match
-                    if $pattern[0] == $string[0] {
-                        found = true;
+                    match $pattern.get(0) {
+                        Some(&a) if a == string_head => found = true,
+                        Some(_) => (),
+
+                        // When the pattern is is exhausted
+                        _ => return false,
                     }
                 }
                 // We found the natural end of the range, stop matching
-                b']' => break,
-                _ => {
+                Some(b']') => break,
+                Some(&pattern_head) => {
                     if $pattern.len() >= 3 && $pattern[1] == b'-' {
-                        let range = byte_range($pattern[0], $pattern[2]);
-                        if range.contains(&$string[0]) {
+                        let range = byte_range(pattern_head, $pattern[2]);
+                        if range.contains(&string_head) {
                             found = true;
                         }
 
                         // Step to the 'end' char of the range
                         // expression
                         $pattern = &$pattern[2..];
-                    } else if $pattern[0] == $string[0] {
+                    } else if pattern_head == string_head {
                         found = true;
                     }
                 }
+                // Defend against unexpectedly exhausted pattern. E.g if
+                // there is a stray '-' at the end of the range expression.
+                None => break,
             }
 
             // We must walk the entire range until the closing square
