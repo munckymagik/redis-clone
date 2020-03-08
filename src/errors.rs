@@ -14,6 +14,7 @@ pub enum Error {
     Proto(ProtoError),
     Io(std::io::Error),
     CastingInt(std::num::TryFromIntError),
+    Utf8Error(std::string::FromUtf8Error),
 }
 
 impl StdError for Error {}
@@ -29,6 +30,7 @@ impl Display for Error {
             Self::Proto(ref source) => write!(f, "{}", source),
             Self::Io(ref source) => write!(f, "{}", source),
             Self::CastingInt(ref source) => write!(f, "{}", source),
+            Self::Utf8Error(ref source) => write!(f, "{}", source),
         }
     }
 }
@@ -43,7 +45,8 @@ impl PartialEq for Error {
             (&Self::ProtocolError, &Self::ProtocolError) => true,
             (&Self::Proto(ref a), &Self::Proto(ref b)) => a == b,
             (&Self::CastingInt(ref a), &Self::CastingInt(ref b)) => a == b,
-            (&Self::Io(_), &Self::Io(_)) => false, // cannot be compared
+            (&Self::Utf8Error(_), &Self::Utf8Error(_)) => false, // cannot be compared
+            (&Self::Io(_), &Self::Io(_)) => false,               // cannot be compared
             _ => false,
         }
     }
@@ -79,6 +82,12 @@ impl From<String> for Error {
 impl From<std::num::TryFromIntError> for Error {
     fn from(other: std::num::TryFromIntError) -> Self {
         Self::CastingInt(other)
+    }
+}
+
+impl From<std::string::FromUtf8Error> for Error {
+    fn from(other: std::string::FromUtf8Error) -> Self {
+        Self::Utf8Error(other)
     }
 }
 

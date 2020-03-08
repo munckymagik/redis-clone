@@ -5,7 +5,7 @@ use crate::{
     response::Response,
     response_ext::ResponseExt,
 };
-use globber::Pattern;
+use byte_glob;
 use std::convert::TryInto;
 
 pub(crate) fn del_command(
@@ -50,18 +50,13 @@ pub(crate) fn keys_command(
     response: &mut Response,
 ) -> Result<()> {
     let pattern = request.arg(0)?;
-    let matcher = match Pattern::new(pattern) {
-        Ok(m) => m,
-        Err(_) => {
-            response.add_array_len(0);
-            return Ok(());
-        }
-    };
 
-    let results: Vec<_> = if pattern == "*" {
+    let results: Vec<_> = if pattern.as_ref() == b"*" {
         db.keys().collect()
     } else {
-        db.keys().filter(|key| matcher.matches(key)).collect()
+        db.keys()
+            .filter(|key| byte_glob::glob(pattern, key))
+            .collect()
     };
 
     response.add_array_len(results.len().try_into()?);
@@ -110,12 +105,15 @@ pub(crate) fn object_command(
 ) -> Result<()> {
     match req.maybe_arg(0) {
         Some(sub_command) => match sub_command.to_lowercase().as_ref() {
-            "help" => response.add_reply_help(req.command(), OBJECT_HELP),
-            "encoding" => {
+            b"help" => response.add_reply_help(req.command(), OBJECT_HELP),
+            b"encoding" => {
                 let key = match req.maybe_arg(1) {
                     Some(k) => k,
                     None => {
-                        response.add_reply_subcommand_syntax_error(req.command(), sub_command);
+                        response.add_reply_subcommand_syntax_error(
+                            req.command(),
+                            sub_command.as_byte_str(),
+                        );
                         return Ok(());
                     }
                 };
@@ -124,7 +122,7 @@ pub(crate) fn object_command(
                     Some(value) => {
                         let type_name = match value {
                             RObj::Int(_) => "int",
-                            RObj::String(_) => "string",
+                            RObj::String(_) => "byte_string",
                             RObj::List(_) => "vecdeque",
                         };
 
@@ -135,10 +133,12 @@ pub(crate) fn object_command(
                     }
                 }
             }
-            _ => response.add_reply_subcommand_syntax_error(req.command(), sub_command),
+            _ => {
+                response.add_reply_subcommand_syntax_error(req.command(), sub_command.as_byte_str())
+            }
         },
         None => {
-            response.add_reply_subcommand_syntax_error(req.command(), "(none)");
+            response.add_reply_subcommand_syntax_error(req.command(), "(none)".into());
         }
     }
 

@@ -11,12 +11,14 @@ const MAX_LINE_LENGTH: usize = 64 * 1024;
 const LF: u8 = b'\n';
 const CRLF: &[u8] = b"\r\n";
 
+use byte_string::{ByteStr, ByteString};
 use std::convert::{TryFrom, TryInto};
 use std::marker::Unpin;
 use tokio::io::{AsyncBufRead, AsyncBufReadExt, AsyncReadExt};
 
-pub async fn decode<T: AsyncBufRead + Unpin + Send>(mut stream: T) -> ProtoResult<Vec<String>> {
-    let (type_sym, value_str) = read_header(&mut stream).await?;
+pub async fn decode<T: AsyncBufRead + Unpin + Send>(mut stream: T) -> ProtoResult<Vec<ByteString>> {
+    let mut buffer = vec![];
+    let (type_sym, value_str) = read_header(&mut stream, &mut buffer).await?;
 
     if type_sym != b'*' {
         return Err(ProtoError::UnsupportedSymbol(type_sym.into()));
@@ -27,17 +29,17 @@ pub async fn decode<T: AsyncBufRead + Unpin + Send>(mut stream: T) -> ProtoResul
     Ok(value)
 }
 
-async fn read_header(stream: &mut (impl AsyncBufRead + Unpin + Send)) -> ProtoResult<(u8, String)> {
-    let mut buffer = vec![];
-    read_line(stream, &mut buffer).await?;
+async fn read_header<'a>(
+    stream: &mut (impl AsyncBufRead + Unpin + Send),
+    buffer: &'a mut Vec<u8>,
+) -> ProtoResult<(u8, ByteStr<'a>)> {
+    read_line(stream, buffer).await?;
 
     let (&type_sym, tail) = buffer
         .split_first()
         .ok_or_else(|| ProtoError::from("Error parsing resp header structure"))?;
 
-    let tail = std::str::from_utf8(tail)?.to_owned();
-
-    Ok((type_sym, tail))
+    Ok((type_sym, ByteStr::from(tail)))
 }
 
 async fn read_line(
@@ -74,24 +76,26 @@ async fn read_line(
 async fn read_bulk_string(
     stream: &mut (impl AsyncBufRead + Unpin + Send),
     len: i64,
-) -> ProtoResult<String> {
+) -> ProtoResult<ByteString> {
     let len = usize::try_from(len).or(Err(ProtoError::InvalidBulkStringSize))?;
 
     if len > MAX_BULK_STR_SIZE {
         return Err(ProtoError::InvalidBulkStringSize);
     }
 
-    let mut buffer = vec![0; len + 2];
+    let mut buffer = ByteString::from(vec![0; len + 2]);
     stream.read_exact(&mut buffer).await?;
-    let value_str = std::str::from_utf8(&buffer[..len])?;
 
-    Ok(value_str.to_owned())
+    // Drop the trailing end of line chars
+    buffer.truncate(len);
+
+    Ok(buffer)
 }
 
 async fn read_array(
     stream: &mut (impl AsyncBufRead + Unpin + Send),
     len: i64,
-) -> ProtoResult<Vec<String>> {
+) -> ProtoResult<Vec<ByteString>> {
     // We don't need to support empty or null arrays in requests
     if len == 0 || len == -1 {
         return Err(ProtoError::EmptyRequest);
@@ -104,9 +108,12 @@ async fn read_array(
     }
 
     let mut elements = Vec::with_capacity(len);
+    let mut buffer = vec![];
 
     for _ in 0..len {
-        let (type_sym, value_str) = read_header(stream).await?;
+        buffer.clear();
+
+        let (type_sym, value_str) = read_header(stream, &mut buffer).await?;
         if type_sym != b'$' {
             return Err(ProtoError::UnsupportedSymbol(type_sym.into()));
         }
@@ -223,7 +230,7 @@ mod test {
         let result = decode(input);
         assert_eq!(
             result.await.unwrap(),
-            vec!["abc\r\ndef".to_string(), "123".to_string()]
+            vec![ByteString::from("abc\r\ndef"), ByteString::from("123"),]
         );
     }
 
@@ -241,7 +248,7 @@ mod test {
     async fn decode_empty_bulk_string() {
         let input: &[u8] = b"*1\r\n$0\r\n\r\n";
         let result = decode(input);
-        assert_eq!(result.await.unwrap(), vec!["".to_string()]);
+        assert_eq!(result.await.unwrap(), vec![ByteString::new()]);
     }
 
     #[tokio::test]

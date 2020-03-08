@@ -5,6 +5,7 @@ use crate::{
     response::Response,
     response_ext::ResponseExt,
 };
+use byte_string::ByteString;
 use std::convert::TryInto;
 
 macro_rules! parse_arg_or_reply_with_err {
@@ -84,8 +85,8 @@ pub(crate) fn linsert_command(
 
             if let Some(idx) = list.iter().position(|elem| elem == pivot) {
                 let idx = match side.to_lowercase().as_ref() {
-                    "before" => idx,
-                    "after" => idx + 1,
+                    b"before" => idx,
+                    b"after" => idx + 1,
                     _ => {
                         response.add_error("ERR syntax error");
                         return Ok(());
@@ -93,7 +94,7 @@ pub(crate) fn linsert_command(
                 };
 
                 let value = request.arg(3)?;
-                list.insert(idx, value.to_string());
+                list.insert(idx, value.clone());
 
                 response.add_integer(list.len().try_into()?);
             } else {
@@ -225,7 +226,7 @@ pub(crate) fn lset_command(
             if let Some(existing_value) = list.get_mut(index) {
                 let new_value = request.arg(2)?;
                 existing_value.clear();
-                existing_value.push_str(&new_value);
+                existing_value.extend(new_value.as_ref());
                 existing_value.shrink_to_fit();
 
                 response.add_simple_string("OK");
@@ -333,7 +334,8 @@ pub(crate) fn lrem_command(
             let mut removed = 0;
             let mut reverse = false;
 
-            let maybe_rev_iter: Box<dyn DoubleEndedIterator<Item = &String>> = if to_remove < 0 {
+            let maybe_rev_iter: Box<dyn DoubleEndedIterator<Item = &ByteString>> = if to_remove < 0
+            {
                 to_remove = -to_remove;
                 reverse = true;
                 Box::new(list.iter().rev())
@@ -341,7 +343,7 @@ pub(crate) fn lrem_command(
                 Box::new(list.iter())
             };
 
-            let filtered: Vec<&String> = maybe_rev_iter
+            let filtered: Vec<&ByteString> = maybe_rev_iter
                 .filter(|entry| {
                     if (to_remove == 0 || removed < to_remove) && entry == &obj {
                         removed += 1;
@@ -352,13 +354,13 @@ pub(crate) fn lrem_command(
                 })
                 .collect();
 
-            let result_iter: Box<dyn DoubleEndedIterator<Item = &String>> = if reverse {
+            let result_iter: Box<dyn DoubleEndedIterator<Item = &ByteString>> = if reverse {
                 Box::new(filtered.iter().rev().cloned())
             } else {
                 Box::new(filtered.iter().cloned())
             };
 
-            db.insert(key.to_string(), RObj::new_list_from(result_iter.cloned()));
+            db.insert(key.to_owned(), RObj::new_list_from(result_iter.cloned()));
             response.add_integer(removed);
         }
         Some(_) => response.add_reply_wrong_type(),

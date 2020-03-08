@@ -5,6 +5,7 @@ use crate::{
     response::Response,
     response_ext::ResponseExt,
 };
+use byte_string::ByteString;
 
 pub(crate) fn set_command(
     db: &mut Database,
@@ -18,8 +19,8 @@ pub(crate) fn set_command(
 
     for arg in &request.arguments()[2..] {
         match arg.to_lowercase().as_ref() {
-            "nx" if !xx => nx = true,
-            "xx" if !nx => xx = true,
+            b"nx" if !xx => nx = true,
+            b"xx" if !nx => xx = true,
             _ => {
                 response.add_error("ERR syntax error");
                 return Ok(());
@@ -32,7 +33,7 @@ pub(crate) fn set_command(
         return Ok(());
     }
 
-    db.insert(key.to_owned(), value.to_owned().into());
+    db.insert(key.clone(), value.clone().into());
     response.add_simple_string("OK");
 
     Ok(())
@@ -80,7 +81,7 @@ pub(crate) fn incrby_command(
     request: &Request,
     response: &mut Response,
 ) -> Result<()> {
-    let arg = request.arg(1)?;
+    let arg = ByteString::from(request.arg(1)?);
 
     if let Some(increment) = parse_i64_or_reply_with_error(response, &arg) {
         return general_incr(db, request, response, increment);
@@ -115,7 +116,10 @@ fn general_incr(
         Some(RObj::String(old_value)) => {
             if let Some(value) = parse_i64_or_reply_with_error(response, old_value) {
                 if let Some(new_value) = value.checked_add(increment) {
-                    db.insert(key.to_string(), new_value.to_string().into());
+                    db.insert(
+                        key.to_owned(),
+                        ByteString::from(new_value.to_string()).into(),
+                    );
                     response.add_integer(new_value);
                 } else {
                     response.add_error("ERR increment or decrement would overflow")
@@ -124,7 +128,7 @@ fn general_incr(
         }
         Some(RObj::Int(old_value)) => {
             if let Some(new_value) = old_value.checked_add(increment) {
-                db.insert(key.to_string(), new_value.into());
+                db.insert(key.to_owned(), new_value.into());
                 response.add_integer(new_value);
             } else {
                 response.add_error("ERR increment or decrement would overflow")
@@ -132,7 +136,7 @@ fn general_incr(
         }
         Some(_) => response.add_reply_wrong_type(),
         None => {
-            db.insert(key.to_string(), increment.into());
+            db.insert(key.to_owned(), increment.into());
             response.add_integer(increment);
         }
     }
@@ -140,7 +144,7 @@ fn general_incr(
     Ok(())
 }
 
-fn parse_i64_or_reply_with_error(response: &mut Response, value: &str) -> Option<i64> {
+fn parse_i64_or_reply_with_error(response: &mut Response, value: &ByteString) -> Option<i64> {
     match value.parse() {
         Ok(v) => Some(v),
         Err(_) => {

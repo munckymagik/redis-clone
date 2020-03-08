@@ -6,6 +6,7 @@ use crate::{
     request::{self, Request},
     response::Response,
 };
+use byte_string::ByteStr;
 use log::{debug, error, info};
 use std::{
     fmt::Debug,
@@ -76,7 +77,7 @@ fn api_handle_command(
         Ok(Err(e)) => {
             error!(
                 "ERROR handling command `{}` with args {}: '{}'",
-                cmd.name,
+                ByteStr::from(cmd.name),
                 request.argv_to_string(),
                 e
             );
@@ -85,7 +86,7 @@ fn api_handle_command(
         Err(_) => {
             error!(
                 "PANIC handling command `{}` with args {}",
-                cmd.name,
+                ByteStr::from(cmd.name),
                 request.argv_to_string(),
             );
             response.add_error("ERR server error");
