@@ -108,7 +108,7 @@ pub(crate) fn object_command(
                 let key = match req.maybe_arg(1) {
                     Some(k) => k,
                     None => {
-                        response.add_reply_subcommand_syntax_error(req.command(), sub_command);
+                        response.add_reply_subcommand_syntax_error(req.command(), sub_command.as_byte_str());
                         return Ok(());
                     }
                 };
@@ -128,10 +128,10 @@ pub(crate) fn object_command(
                     }
                 }
             }
-            _ => response.add_reply_subcommand_syntax_error(req.command(), sub_command),
+            _ => response.add_reply_subcommand_syntax_error(req.command(), sub_command.as_byte_str()),
         },
         None => {
-            response.add_reply_subcommand_syntax_error(req.command(), "(none)");
+            response.add_reply_subcommand_syntax_error(req.command(), "(none)".into());
         }
     }
 

@@ -27,7 +27,7 @@ pub(crate) fn command_command(_: &mut Database, req: &Request, reply: &mut Respo
                     }
                 }
             }
-            _ => reply.add_reply_subcommand_syntax_error(req.command(), sub_command),
+            _ => reply.add_reply_subcommand_syntax_error(req.command(), sub_command.as_byte_str()),
         },
         None => {
             reply.add_array_len(COMMAND_TABLE.len().try_into()?);
@@ -61,7 +61,7 @@ pub(crate) fn debug_command(_: &mut Database, req: &Request, reply: &mut Respons
         b"error" => {
             return Err(Error::from("A deliberate error from DEBUG ERROR"));
         }
-        _ => reply.add_reply_subcommand_syntax_error(req.command(), &sub_command),
+        _ => reply.add_reply_subcommand_syntax_error(req.command(), sub_command.as_byte_str()),
     };
 
     Ok(())

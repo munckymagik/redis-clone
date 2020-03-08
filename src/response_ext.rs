@@ -1,13 +1,12 @@
 use crate::response::Response;
 use byte_string::ByteStr;
-use std::fmt::Display;
 use std::convert::TryInto;
 
 /// Helpers methods that extend Response with facilities more logically
 /// related to the command interactions than the protocol
 pub trait ResponseExt {
     fn add_reply_help(&mut self, command: ByteStr, help: &[&str]);
-    fn add_reply_subcommand_syntax_error(&mut self, command: ByteStr, sub_command: impl Display);
+    fn add_reply_subcommand_syntax_error(&mut self, command: ByteStr, sub_command: ByteStr);
     fn add_reply_wrong_number_of_arguments(&mut self, command: ByteStr);
     fn add_reply_wrong_type(&mut self);
     fn add_reply_not_a_number(&mut self);
@@ -28,7 +27,7 @@ impl ResponseExt for Response {
         }
     }
 
-    fn add_reply_subcommand_syntax_error(&mut self, command: ByteStr, sub_command: impl Display) {
+    fn add_reply_subcommand_syntax_error(&mut self, command: ByteStr, sub_command: ByteStr) {
         let command = command.to_uppercase();
 
         let message = format!(
@@ -78,7 +77,7 @@ mod test {
     fn test_add_reply_subcommand_syntax_error() {
         let mut response = Response::new();
 
-        response.add_reply_subcommand_syntax_error("cmd".into(), "xyz");
+        response.add_reply_subcommand_syntax_error("cmd".into(), "xyz".into());
 
         let expected =
             "-ERR Unknown subcommand or wrong number of arguments for 'xyz'. Try CMD HELP.\r\n";
