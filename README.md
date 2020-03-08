@@ -74,12 +74,12 @@ Then you can see what commands are available:
 
 ## Testing
 
-There are two suites of tests:
+There are two kinds of tests:
 
 * Unit tests within the Rust source code
 * A suite of functional tests that use Ruby and the Ruby Redis Gem to test the supported commands
 
-First the Rust tests:
+To run the Rust tests for all packages in the workspace:
 
 ```shell
 cargo test

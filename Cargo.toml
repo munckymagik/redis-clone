@@ -6,6 +6,10 @@ edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[workspace]
+members = [".", "byte_glob", "byte_string"]
+default-members = [".", "byte_glob", "byte_string"]
+
 [dependencies]
 byte_glob = { path = "./byte_glob" }
 byte_string = { path = "./byte_string" }
