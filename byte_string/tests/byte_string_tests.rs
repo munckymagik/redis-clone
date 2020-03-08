@@ -34,13 +34,6 @@ mod copying_and_cloning {
     }
 
     #[test]
-    fn test_byte_str_clone() {
-        let a: ByteStr = "a".into();
-        let b: ByteStr = a.clone();
-        assert_eq!(a, b);
-    }
-
-    #[test]
     fn test_byte_string_clone() {
         let a: ByteString = "a".into();
         let b = a.clone();

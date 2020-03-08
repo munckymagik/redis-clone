@@ -43,7 +43,7 @@ impl_number_for!(i64, isize);
 
 // Based heavily on Rust std lib's from_str_radix
 pub(crate) fn from_bytes<T: Number>(string: &[u8]) -> Result<T, ParseIntError> {
-    if string.len() == 0 {
+    if string.is_empty() {
         return Err(ParseIntError);
     }
 
