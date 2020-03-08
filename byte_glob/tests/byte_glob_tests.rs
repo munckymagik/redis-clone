@@ -96,6 +96,7 @@ fn test_escapes() {
 }
 
 #[test]
+#[allow(clippy::cognitive_complexity)]
 fn test_range_match() {
     // Empty range never matches
     assert!(!glob(b"[]", b""));
