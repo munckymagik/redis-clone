@@ -33,7 +33,7 @@ pub(crate) fn set_command(
         return Ok(());
     }
 
-    db.insert(key.to_owned(), ByteString::from(value).into());
+    db.insert(key.clone(), value.clone().into());
     response.add_simple_string("OK");
 
     Ok(())
@@ -95,7 +95,7 @@ pub(crate) fn decrby_command(
     request: &Request,
     response: &mut Response,
 ) -> Result<()> {
-    let arg = ByteString::from(request.arg(1)?);
+    let arg = request.arg(1)?;
 
     if let Some(increment) = parse_i64_or_reply_with_error(response, &arg) {
         return general_incr(db, request, response, -increment);
