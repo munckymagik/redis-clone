@@ -1,5 +1,7 @@
 # Rust::clone(Redis)
 
+![Rust](https://github.com/munckymagik/redis-clone/workflows/Rust/badge.svg)
+
 ⚠️ **NOT FOR PRODUCTION USE - toy only** ⚠️
 
 This is a clone of a portion of Redis for two reasons:
