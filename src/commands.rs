@@ -59,6 +59,21 @@ static COMMAND_TABLE: &[RedisCommand] = &[
         arity: -2,
     },
     RedisCommand {
+        name: b"expire",
+        handler: keyspace::expire_command,
+        arity: 3,
+    },
+    RedisCommand {
+        name: b"persist",
+        handler: keyspace::persist_command,
+        arity: 2,
+    },
+    RedisCommand {
+        name: b"ttl",
+        handler: keyspace::ttl_command,
+        arity: 2,
+    },
+    RedisCommand {
         name: b"incr",
         handler: string_type::incr_command,
         arity: 2,

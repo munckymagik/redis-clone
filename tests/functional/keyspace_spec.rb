@@ -3,8 +3,11 @@ RSpec.describe "Keyspace commands", include_connection: true do
     specify "the arity for each command is correctly specified" do
       expect(redis.command("info", "del").dig(0, 1)).to eql(-2)
       expect(redis.command("info", "exists").dig(0, 1)).to eql(-2)
+      expect(redis.command("info", "expire").dig(0, 1)).to eql(3)
       expect(redis.command("info", "keys").dig(0, 1)).to eql(2)
       expect(redis.command("info", "object").dig(0, 1)).to eql(-2)
+      expect(redis.command("info", "persist").dig(0, 1)).to eql(2)
+      expect(redis.command("info", "ttl").dig(0, 1)).to eql(2)
       expect(redis.command("info", "type").dig(0, 1)).to eql(2)
     end
   end
@@ -157,6 +160,39 @@ RSpec.describe "Keyspace commands", include_connection: true do
           end
         end
       end
+    end
+  end
+
+  describe "EXPIRE" do
+    context "when the specified key does not exist" do
+      it "returns 0 (false)" do
+        expect(redis.expire("does-not-exist", 10)).to be(false)
+      end
+    end
+
+    context "when the specified key exists" do
+    end
+  end
+
+  describe "PERSIST" do
+    context "when the specified key does not exist" do
+      it "returns 0 (false)" do
+        expect(redis.persist("does-not-exist")).to be(false)
+      end
+    end
+
+    context "when the specified key exists" do
+    end
+  end
+
+  describe "TTL" do
+    context "when the specified key does not exist" do
+      it "returns -2" do
+        expect(redis.ttl("does-not-exist")).to eql(-2)
+      end
+    end
+
+    context "when the specified key exists" do
     end
   end
 end

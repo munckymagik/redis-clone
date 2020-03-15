@@ -144,3 +144,30 @@ pub(crate) fn object_command(
 
     Ok(())
 }
+
+pub(crate) fn expire_command(
+    _db: &mut Database,
+    _request: &Request,
+    response: &mut Response,
+) -> Result<()> {
+    response.add_integer(-1);
+    Ok(())
+}
+
+pub(crate) fn persist_command(
+    _db: &mut Database,
+    _request: &Request,
+    response: &mut Response,
+) -> Result<()> {
+    response.add_integer(-1);
+    Ok(())
+}
+
+pub(crate) fn ttl_command(
+    _db: &mut Database,
+    _request: &Request,
+    response: &mut Response,
+) -> Result<()> {
+    response.add_integer(-3);
+    Ok(())
+}
