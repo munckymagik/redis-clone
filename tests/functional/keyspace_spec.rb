@@ -1,11 +1,11 @@
 RSpec.describe "Keyspace commands", include_connection: true do
   describe "arity" do
     specify "the arity for each command is correctly specified" do
-      expect(redis.command("info", "del")[0][1]).to eql(-2)
-      expect(redis.command("info", "exists")[0][1]).to eql(-2)
-      expect(redis.command("info", "keys")[0][1]).to eql(2)
-      expect(redis.command("info", "object")[0][1]).to eql(-2)
-      expect(redis.command("info", "type")[0][1]).to eql(2)
+      expect(redis.command("info", "del").dig(0, 1)).to eql(-2)
+      expect(redis.command("info", "exists").dig(0, 1)).to eql(-2)
+      expect(redis.command("info", "keys").dig(0, 1)).to eql(2)
+      expect(redis.command("info", "object").dig(0, 1)).to eql(-2)
+      expect(redis.command("info", "type").dig(0, 1)).to eql(2)
     end
   end
 

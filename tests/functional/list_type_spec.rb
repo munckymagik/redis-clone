@@ -1,17 +1,17 @@
 RSpec.describe "List commands", include_connection: true do
   describe "arity" do
     specify "the arity for each command is correctly specified" do
-      expect(redis.command("info", "rpush")[0][1]).to eql(-3)
-      expect(redis.command("info", "lpush")[0][1]).to eql(-3)
-      expect(redis.command("info", "linsert")[0][1]).to eql(5)
-      expect(redis.command("info", "rpop")[0][1]).to eql(2)
-      expect(redis.command("info", "lpop")[0][1]).to eql(2)
-      expect(redis.command("info", "llen")[0][1]).to eql(2)
-      expect(redis.command("info", "lindex")[0][1]).to eql(3)
-      expect(redis.command("info", "lset")[0][1]).to eql(4)
-      expect(redis.command("info", "lrange")[0][1]).to eql(4)
-      expect(redis.command("info", "ltrim")[0][1]).to eql(4)
-      expect(redis.command("info", "lrem")[0][1]).to eql(4)
+      expect(redis.command("info", "rpush").dig(0, 1)).to eql(-3)
+      expect(redis.command("info", "lpush").dig(0, 1)).to eql(-3)
+      expect(redis.command("info", "linsert").dig(0, 1)).to eql(5)
+      expect(redis.command("info", "rpop").dig(0, 1)).to eql(2)
+      expect(redis.command("info", "lpop").dig(0, 1)).to eql(2)
+      expect(redis.command("info", "llen").dig(0, 1)).to eql(2)
+      expect(redis.command("info", "lindex").dig(0, 1)).to eql(3)
+      expect(redis.command("info", "lset").dig(0, 1)).to eql(4)
+      expect(redis.command("info", "lrange").dig(0, 1)).to eql(4)
+      expect(redis.command("info", "ltrim").dig(0, 1)).to eql(4)
+      expect(redis.command("info", "lrem").dig(0, 1)).to eql(4)
     end
   end
 

@@ -7,9 +7,9 @@ RSpec.describe "Server commands", include_connection: true do
       using_real_redis? ? 0 : -1
     end
     specify "the arity for each command is correctly specified" do
-      expect(redis.command("info", "command")[0][1]).to eql(command_arity)
-      expect(redis.command("info", "debug")[0][1]).to eql(-2)
-      expect(redis.command("info", "flushdb")[0][1]).to eql(-1)
+      expect(redis.command("info", "command").dig(0, 1)).to eql(command_arity)
+      expect(redis.command("info", "debug").dig(0, 1)).to eql(-2)
+      expect(redis.command("info", "flushdb").dig(0, 1)).to eql(-1)
     end
   end
 

@@ -1,12 +1,12 @@
 RSpec.describe "Strings commands", include_connection: true do
   describe "arity" do
     specify "the arity for each command is correctly specified" do
-      expect(redis.command("info", "set")[0][1]).to eql(-3)
-      expect(redis.command("info", "get")[0][1]).to eql(2)
-      expect(redis.command("info", "incr")[0][1]).to eql(2)
-      expect(redis.command("info", "incrby")[0][1]).to eql(3)
-      expect(redis.command("info", "decr")[0][1]).to eql(2)
-      expect(redis.command("info", "decrby")[0][1]).to eql(3)
+      expect(redis.command("info", "set").dig(0, 1)).to eql(-3)
+      expect(redis.command("info", "get").dig(0, 1)).to eql(2)
+      expect(redis.command("info", "incr").dig(0, 1)).to eql(2)
+      expect(redis.command("info", "incrby").dig(0, 1)).to eql(3)
+      expect(redis.command("info", "decr").dig(0, 1)).to eql(2)
+      expect(redis.command("info", "decrby").dig(0, 1)).to eql(3)
     end
   end
 
