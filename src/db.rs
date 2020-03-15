@@ -1,11 +1,56 @@
 use byte_string::ByteString;
 use std::{
+    collections::hash_map::Keys,
     collections::HashMap,
     collections::VecDeque,
     iter::{FromIterator, IntoIterator},
 };
 
-pub type Database = HashMap<ByteString, RObj>;
+type DatabaseInner = HashMap<ByteString, RObj>;
+
+pub struct Database {
+    inner: DatabaseInner,
+}
+
+impl Database {
+    pub fn new() -> Self {
+        Self {
+            inner: DatabaseInner::new(),
+        }
+    }
+
+    pub fn get<'a>(&'a self, key: &ByteString) -> Option<&'a RObj> {
+        self.inner.get(key)
+    }
+
+    pub fn get_mut<'a>(&'a mut self, key: &ByteString) -> Option<&'a mut RObj> {
+        self.inner.get_mut(key)
+    }
+
+    pub fn keys(&mut self) -> Keys<'_, ByteString, RObj> {
+        self.inner.keys()
+    }
+
+    pub fn clear(&mut self) {
+        self.inner.clear();
+    }
+
+    pub fn shrink_to_fit(&mut self) {
+        self.inner.shrink_to_fit();
+    }
+
+    pub fn contains_key(&self, key: &ByteString) -> bool {
+        self.inner.contains_key(key)
+    }
+
+    pub fn insert(&mut self, key: ByteString, value: RObj) {
+        self.inner.insert(key, value);
+    }
+
+    pub fn remove(&mut self, key: &ByteString) -> Option<RObj> {
+        self.inner.remove(key)
+    }
+}
 
 #[derive(Debug, PartialEq)]
 pub enum RObj {
