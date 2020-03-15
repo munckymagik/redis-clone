@@ -6,7 +6,10 @@ use crate::{
     response_ext::ResponseExt,
 };
 use byte_glob;
-use std::convert::TryInto;
+use std::{
+    convert::TryInto,
+    time::{Duration, Instant},
+};
 
 pub(crate) fn del_command(
     db: &mut Database,
@@ -146,28 +149,56 @@ pub(crate) fn object_command(
 }
 
 pub(crate) fn expire_command(
-    _db: &mut Database,
-    _request: &Request,
+    db: &mut Database,
+    request: &Request,
     response: &mut Response,
 ) -> Result<()> {
-    response.add_integer(-1);
+    let key = request.arg(0)?;
+    let seconds: i64 = parse_arg_or_reply_with_err!(1, request, response);
+    let expires_at = Instant::now() + Duration::from_secs(seconds.try_into()?);
+
+    let res = db.set_expire(key, expires_at);
+    response.add_integer(res.into());
+
     Ok(())
 }
 
 pub(crate) fn persist_command(
-    _db: &mut Database,
-    _request: &Request,
+    db: &mut Database,
+    request: &Request,
     response: &mut Response,
 ) -> Result<()> {
-    response.add_integer(-1);
+    let key = request.arg(0)?;
+    let res = db.persist(key);
+    response.add_integer(res.into());
     Ok(())
 }
 
 pub(crate) fn ttl_command(
-    _db: &mut Database,
-    _request: &Request,
+    db: &mut Database,
+    request: &Request,
     response: &mut Response,
 ) -> Result<()> {
-    response.add_integer(-3);
+    let key = request.arg(0)?;
+
+    if !db.contains_key(key) {
+        response.add_integer(-2);
+        return Ok(());
+    }
+
+    let now = Instant::now();
+
+    match db.get_expire(key) {
+        // Has an active future expiration time
+        Some(when) if when > now => {
+            let ttl: Duration = when - now;
+            response.add_integer(ttl.as_secs().try_into()?);
+        }
+        // Expiration is in the past, report key as gone
+        Some(_) => response.add_integer(-2),
+        // Key exists but has no expiry
+        None => response.add_integer(-1),
+    }
+
     Ok(())
 }

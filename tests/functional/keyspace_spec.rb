@@ -171,6 +171,19 @@ RSpec.describe "Keyspace commands", include_connection: true do
     end
 
     context "when the specified key exists" do
+      it "sets the expiration for the key" do
+        redis.set("x", "abc")
+        expect(redis.expire("x", 10)).to be(true)
+      end
+    end
+
+    context "when ttl is not an integer" do
+      it "replies with an error" do
+        expect { redis.expire("x", "abc") }
+          .to raise_error(
+            "ERR value is not an integer or out of range"
+          )
+      end
     end
   end
 
@@ -182,6 +195,12 @@ RSpec.describe "Keyspace commands", include_connection: true do
     end
 
     context "when the specified key exists" do
+      it "returns 1 (true)" do
+        redis.set("x", "abc")
+        redis.expire("x", 10)
+        expect(redis.persist("x")).to be(true)
+        expect(redis.ttl("x")).to eql(-1)
+      end
     end
   end
 
@@ -192,7 +211,28 @@ RSpec.describe "Keyspace commands", include_connection: true do
       end
     end
 
-    context "when the specified key exists" do
+    context "when the specified key has expired", slow: true do
+      it "returns -2" do
+        redis.set("x", "abc")
+        redis.expire("x", 1)
+        sleep(1.5)
+        expect(redis.ttl("x")).to eql(-2)
+      end
+    end
+
+    context "when the specified key exists but has no associated expire" do
+      it "returns -1" do
+        redis.set("x", "abc")
+        expect(redis.ttl("x")).to eql(-1)
+      end
+    end
+
+    context "when the specified key exists and has an expire" do
+      it "returns emaining time to live of the key" do
+        redis.set("x", "abc")
+        redis.expire("x", 10)
+        expect(redis.ttl("x")).to be_between(0, 10)
+      end
     end
   end
 end

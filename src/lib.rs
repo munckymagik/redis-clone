@@ -2,6 +2,9 @@
 
 pub mod server;
 
+#[macro_use]
+mod macros;
+
 mod commands;
 mod db;
 mod errors;

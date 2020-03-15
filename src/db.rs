@@ -4,18 +4,19 @@ use std::{
     collections::HashMap,
     collections::VecDeque,
     iter::{FromIterator, IntoIterator},
+    time::Instant,
 };
 
-type DatabaseInner = HashMap<ByteString, RObj>;
-
 pub struct Database {
-    inner: DatabaseInner,
+    inner: HashMap<ByteString, RObj>,
+    expires: HashMap<ByteString, Instant>,
 }
 
 impl Database {
     pub fn new() -> Self {
         Self {
-            inner: DatabaseInner::new(),
+            inner: HashMap::new(),
+            expires: HashMap::new(),
         }
     }
 
@@ -32,11 +33,13 @@ impl Database {
     }
 
     pub fn clear(&mut self) {
+        // Clears all the key-values but retains memory
         self.inner.clear();
-    }
+        self.expires.clear();
 
-    pub fn shrink_to_fit(&mut self) {
+        // Releases memory
         self.inner.shrink_to_fit();
+        self.expires.shrink_to_fit();
     }
 
     pub fn contains_key(&self, key: &ByteString) -> bool {
@@ -49,6 +52,24 @@ impl Database {
 
     pub fn remove(&mut self, key: &ByteString) -> Option<RObj> {
         self.inner.remove(key)
+    }
+
+    pub fn set_expire(&mut self, key: &ByteString, expires_at: Instant) -> bool {
+        if !self.contains_key(key) {
+            return false;
+        };
+
+        self.expires.insert(key.clone(), expires_at);
+
+        true
+    }
+
+    pub fn get_expire(&self, key: &ByteString) -> Option<Instant> {
+        self.expires.get(key).copied()
+    }
+
+    pub fn persist(&mut self, key: &ByteString) -> bool {
+        self.expires.remove(key).is_some()
     }
 }
 
@@ -83,6 +104,7 @@ impl RObj {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::time::Duration;
 
     #[test]
     fn test_new_list_from() {
@@ -114,5 +136,50 @@ mod tests {
         // Overflowing the maximum value of an i64 results in a String
         let o: RObj = ByteString::from(format!("{}1", std::i64::MAX)).into();
         assert_eq!(o, RObj::String(ByteString::from("92233720368547758071")));
+    }
+
+    #[test]
+    fn test_expires() {
+        let now = Instant::now();
+        let mut db = Database::new();
+        let key: ByteString = "x".into();
+        let expires_at = now + Duration::from_secs(10);
+
+        // When there is no associated key
+        assert_eq!(db.get_expire(&key), None);
+        assert!(!db.set_expire(&key, expires_at));
+        assert!(!db.persist(&key));
+
+        // When there is an associated key but no expiry
+        db.insert(key.clone(), 123.into());
+        assert_eq!(db.get_expire(&key), None);
+        assert!(!db.persist(&key));
+
+        // When there is an associated key and an expiry
+        assert!(db.set_expire(&key, expires_at));
+        assert_eq!(db.get_expire(&key), Some(expires_at));
+        assert!(db.persist(&key));
+        assert_eq!(db.get_expire(&key), None);
+    }
+
+    #[test]
+    fn test_clear() {
+        let now = Instant::now();
+        let mut db = Database::new();
+        let key: ByteString = "x".into();
+        let expires_at = now + Duration::from_secs(10);
+        db.insert(key.clone(), 123.into());
+        db.set_expire(&key, expires_at);
+
+        // Before clearing
+        assert_eq!(db.inner.len(), 1);
+        assert_eq!(db.expires.len(), 1);
+
+        // After clearing
+        db.clear();
+        assert_eq!(db.inner.len(), 0);
+        assert_eq!(db.expires.len(), 0);
+        assert_eq!(db.inner.capacity(), 0);
+        assert_eq!(db.expires.capacity(), 0);
     }
 }
