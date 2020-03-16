@@ -20,11 +20,19 @@ impl Database {
         }
     }
 
-    pub fn get<'a>(&'a self, key: &ByteString) -> Option<&'a RObj> {
+    pub fn get<'a>(&'a mut self, key: &ByteString) -> Option<&'a RObj> {
+        if self.remove_if_expired(key) {
+            return None;
+        }
+
         self.inner.get(key)
     }
 
     pub fn get_mut<'a>(&'a mut self, key: &ByteString) -> Option<&'a mut RObj> {
+        if self.remove_if_expired(key) {
+            return None;
+        }
+
         self.inner.get_mut(key)
     }
 
@@ -42,20 +50,17 @@ impl Database {
         self.expires.shrink_to_fit();
     }
 
-    pub fn contains_key(&self, key: &ByteString) -> bool {
-        self.inner.contains_key(key)
-    }
-
     pub fn insert(&mut self, key: ByteString, value: RObj) {
         self.inner.insert(key, value);
     }
 
     pub fn remove(&mut self, key: &ByteString) -> Option<RObj> {
+        self.expires.remove(key);
         self.inner.remove(key)
     }
 
     pub fn set_expire(&mut self, key: &ByteString, expires_at: Instant) -> bool {
-        if !self.contains_key(key) {
+        if !self.inner.contains_key(key) {
             return false;
         };
 
@@ -70,6 +75,22 @@ impl Database {
 
     pub fn persist(&mut self, key: &ByteString) -> bool {
         self.expires.remove(key).is_some()
+    }
+
+    fn is_expired(&self, key: &ByteString) -> bool {
+        match self.get_expire(key) {
+            Some(when) => Instant::now() > when,
+            _ => false,
+        }
+    }
+
+    fn remove_if_expired(&mut self, key: &ByteString) -> bool {
+        if self.is_expired(key) {
+            self.remove(key);
+            return true;
+        }
+
+        false
     }
 }
 
@@ -164,8 +185,8 @@ mod tests {
 
     #[test]
     fn test_clear() {
-        let now = Instant::now();
         let mut db = Database::new();
+        let now = Instant::now();
         let key: ByteString = "x".into();
         let expires_at = now + Duration::from_secs(10);
         db.insert(key.clone(), 123.into());
@@ -181,5 +202,172 @@ mod tests {
         assert_eq!(db.expires.len(), 0);
         assert_eq!(db.inner.capacity(), 0);
         assert_eq!(db.expires.capacity(), 0);
+    }
+
+    #[test]
+    fn test_is_expired() {
+        let mut db = Database::new();
+        let key: ByteString = "x".into();
+        db.insert(key.clone(), 123.into());
+
+        // When there is no expiry set
+        {
+            // It should be reported as NOT expired
+            assert!(!db.is_expired(&key));
+        }
+
+        // When there is an expiry in the past
+        {
+            let expires_at = Instant::now() - Duration::from_secs(10);
+            db.set_expire(&key, expires_at);
+
+            // It should be reported as expired
+            assert!(db.is_expired(&key));
+        }
+
+        // When there is an expiry in the future
+        {
+            let expires_at = Instant::now() + Duration::from_secs(10);
+            db.set_expire(&key, expires_at);
+
+            // It should be reported as NOT expired
+            assert!(!db.is_expired(&key));
+        }
+    }
+
+    #[test]
+    fn test_remove() {
+        let mut db = Database::new();
+        let key: ByteString = "x".into();
+
+        // When there is no expiry set
+        {
+            db.insert(key.clone(), 123.into());
+
+            // It should remove the key
+            assert!(db.remove(&key).is_some());
+            assert!(!db.inner.contains_key(&key));
+        }
+
+        // When there is an expiry set
+        {
+            db.insert(key.clone(), 123.into());
+
+            let expires_at = Instant::now() + Duration::from_secs(10);
+            db.set_expire(&key, expires_at);
+
+            // It should remove the key
+            assert!(db.remove(&key).is_some());
+            assert!(!db.inner.contains_key(&key));
+
+            // It should also remove the expiry
+            assert!(db.get_expire(&key).is_none());
+        }
+    }
+
+    #[test]
+    fn test_remove_if_expired() {
+        let mut db = Database::new();
+        let key: ByteString = "x".into();
+        db.insert(key.clone(), 123.into());
+
+        // When there is no expiry set
+        {
+            // It should not be removed
+            assert!(!db.remove_if_expired(&key));
+            assert!(db.inner.contains_key(&key));
+        }
+
+        // When there is an expiry in the future
+        {
+            let expires_at = Instant::now() + Duration::from_secs(10);
+            db.set_expire(&key, expires_at);
+
+            // It should not be removed
+            assert!(!db.remove_if_expired(&key));
+            assert!(db.inner.contains_key(&key));
+        }
+
+        // When there is an expiry in the past
+        {
+            let expires_at = Instant::now() - Duration::from_millis(1);
+            db.set_expire(&key, expires_at);
+
+            // It should be removed
+            assert!(db.remove_if_expired(&key));
+            assert!(!db.inner.contains_key(&key));
+        }
+    }
+
+    #[test]
+    fn test_get() {
+        let mut db = Database::new();
+        let key: ByteString = "x".into();
+        db.insert(key.clone(), 123.into());
+
+        // When there is no expiry set
+        {
+            // It should return the value
+            assert!(db.get(&key).is_some());
+            assert!(db.inner.contains_key(&key));
+        }
+
+        // When there is an expiry in the future
+        {
+            let expires_at = Instant::now() + Duration::from_secs(10);
+            db.set_expire(&key, expires_at);
+
+            // It should return the value
+            assert!(db.get(&key).is_some());
+            assert!(db.inner.contains_key(&key));
+        }
+
+        // When there is an expiry in the past
+        {
+            let expires_at = Instant::now() - Duration::from_millis(1);
+            db.set_expire(&key, expires_at);
+
+            // It should return none
+            assert!(db.get(&key).is_none());
+
+            // It should have removed the value
+            assert!(!db.inner.contains_key(&key));
+        }
+    }
+
+    #[test]
+    fn test_get_mut() {
+        let mut db = Database::new();
+        let key: ByteString = "x".into();
+        db.insert(key.clone(), 123.into());
+
+        // When there is no expiry set
+        {
+            // It should return the value
+            assert!(db.get_mut(&key).is_some());
+            assert!(db.inner.contains_key(&key));
+        }
+
+        // When there is an expiry in the future
+        {
+            let expires_at = Instant::now() + Duration::from_secs(10);
+            db.set_expire(&key, expires_at);
+
+            // It should return the value
+            assert!(db.get_mut(&key).is_some());
+            assert!(db.inner.contains_key(&key));
+        }
+
+        // When there is an expiry in the past
+        {
+            let expires_at = Instant::now() - Duration::from_millis(1);
+            db.set_expire(&key, expires_at);
+
+            // It should return none
+            assert!(db.get_mut(&key).is_none());
+
+            // It should have removed the value
+            assert!(!db.inner.contains_key(&key));
+        }
     }
 }

@@ -177,8 +177,40 @@ RSpec.describe "Keyspace commands", include_connection: true do
       end
     end
 
+    context "when the specified key exists and has a future expiry" do
+      it "updates the expiration for the key" do
+        redis.set("x", "abc")
+        redis.expire("x", 10)
+        redis.expire("x", 100)
+        expect(redis.ttl("x")).to be_between(0, 100)
+      end
+    end
+
+    context "when the specified key exists and ttl is not positive" do
+      it "deletes the key" do
+        redis.set("x", "abc")
+        expect(redis.expire("x", 0)).to be(true)
+        expect(redis.exists("x")).to be(false)
+
+        redis.set("x", "abc")
+        expect(redis.expire("x", -1)).to be(true)
+        expect(redis.exists("x")).to be(false)
+      end
+    end
+
+    context "when the specified key has already expired", slow: true do
+      it "removes the key" do
+        redis.set("x", "abc")
+        expect(redis.expire("x", 1)).to be(true)
+        sleep(1.5)
+        expect(redis.expire("x", 1)).to be(false)
+        expect(redis.exists("x")).to be(false)
+      end
+    end
+
     context "when ttl is not an integer" do
       it "replies with an error" do
+        redis.set("x", "123")
         expect { redis.expire("x", "abc") }
           .to raise_error(
             "ERR value is not an integer or out of range"
@@ -202,6 +234,16 @@ RSpec.describe "Keyspace commands", include_connection: true do
         expect(redis.ttl("x")).to eql(-1)
       end
     end
+
+    context "when the specified key has already expired", slow: true do
+      it "removes the key" do
+        redis.set("x", "abc")
+        expect(redis.expire("x", 1)).to be(true)
+        sleep(1.5)
+        expect(redis.persist("x")).to be(false)
+        expect(redis.exists("x")).to be(false)
+      end
+    end
   end
 
   describe "TTL" do
@@ -212,11 +254,12 @@ RSpec.describe "Keyspace commands", include_connection: true do
     end
 
     context "when the specified key has expired", slow: true do
-      it "returns -2" do
+      it "returns -2 and removes the key" do
         redis.set("x", "abc")
         redis.expire("x", 1)
         sleep(1.5)
         expect(redis.ttl("x")).to eql(-2)
+        expect(redis.exists("x")).to be(false)
       end
     end
 

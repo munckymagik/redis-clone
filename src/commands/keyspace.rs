@@ -37,7 +37,7 @@ pub(crate) fn exists_command(
     let mut count = 0;
 
     for key in request.arguments() {
-        if db.contains_key(key) {
+        if db.get(key).is_some() {
             count += 1;
         }
     }
@@ -154,9 +154,21 @@ pub(crate) fn expire_command(
     response: &mut Response,
 ) -> Result<()> {
     let key = request.arg(0)?;
-    let seconds: i64 = parse_arg_or_reply_with_err!(1, request, response);
-    let expires_at = Instant::now() + Duration::from_secs(seconds.try_into()?);
 
+    if db.get(key).is_none() {
+        response.add_integer(0);
+        return Ok(());
+    }
+
+    let seconds: i64 = parse_arg_or_reply_with_err!(1, request, response);
+
+    if !seconds.is_positive() {
+        db.remove(key);
+        response.add_integer(1);
+        return Ok(());
+    }
+
+    let expires_at = Instant::now() + Duration::from_secs(seconds.try_into()?);
     let res = db.set_expire(key, expires_at);
     response.add_integer(res.into());
 
@@ -169,6 +181,12 @@ pub(crate) fn persist_command(
     response: &mut Response,
 ) -> Result<()> {
     let key = request.arg(0)?;
+
+    if db.get(key).is_none() {
+        response.add_integer(0);
+        return Ok(());
+    }
+
     let res = db.persist(key);
     response.add_integer(res.into());
     Ok(())
@@ -181,7 +199,7 @@ pub(crate) fn ttl_command(
 ) -> Result<()> {
     let key = request.arg(0)?;
 
-    if !db.contains_key(key) {
+    if db.get(key).is_none() {
         response.add_integer(-2);
         return Ok(());
     }
@@ -194,10 +212,10 @@ pub(crate) fn ttl_command(
             let ttl: Duration = when - now;
             response.add_integer(ttl.as_secs().try_into()?);
         }
-        // Expiration is in the past, report key as gone
-        Some(_) => response.add_integer(-2),
         // Key exists but has no expiry
         None => response.add_integer(-1),
+        // Should not be a possible given we are calling get beforehand
+        _ => unreachable!(),
     }
 
     Ok(())
