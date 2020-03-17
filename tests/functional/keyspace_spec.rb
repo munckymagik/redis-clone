@@ -47,6 +47,14 @@ RSpec.describe "Keyspace commands", include_connection: true do
           expect(redis.keys('[ab')).to be_empty
         end
       end
+
+      context "when some of the keys have expired" do
+        it "does not list the expired keys", slow: true do
+          redis.expire("key_x", 1)
+          sleep(1.5)
+          expect(redis.keys("*").sort).to eql(keynames - %w[key_x])
+        end
+      end
     end
   end
 

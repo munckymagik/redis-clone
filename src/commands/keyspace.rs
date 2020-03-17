@@ -53,14 +53,9 @@ pub(crate) fn keys_command(
     response: &mut Response,
 ) -> Result<()> {
     let pattern = request.arg(0)?;
+    let all_keys = pattern.as_ref() == b"*";
 
-    let results: Vec<_> = if pattern.as_ref() == b"*" {
-        db.keys().collect()
-    } else {
-        db.keys()
-            .filter(|key| byte_glob::glob(pattern, key))
-            .collect()
-    };
+    let results = db.filter_keys(|key| all_keys || byte_glob::glob(pattern, key));
 
     response.add_array_len(results.len().try_into()?);
     for key in results {

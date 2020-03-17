@@ -1,6 +1,5 @@
 use byte_string::ByteString;
 use std::{
-    collections::hash_map::Keys,
     collections::HashMap,
     collections::VecDeque,
     iter::{FromIterator, IntoIterator},
@@ -36,8 +35,11 @@ impl Database {
         self.inner.get_mut(key)
     }
 
-    pub fn keys(&mut self) -> Keys<'_, ByteString, RObj> {
-        self.inner.keys()
+    pub fn filter_keys(&self, f: impl Fn(&ByteString) -> bool) -> Vec<&ByteString> {
+        self.inner
+            .keys()
+            .filter(|key| !self.is_expired(key) && f(key))
+            .collect()
     }
 
     pub fn clear(&mut self) {
@@ -368,6 +370,39 @@ mod tests {
 
             // It should have removed the value
             assert!(!db.inner.contains_key(&key));
+        }
+    }
+
+    #[test]
+    fn test_filter_keys() {
+        let mut db = Database::new();
+        let key_a = ByteString::from("a");
+        let key_b = ByteString::from("b");
+        let key_c = ByteString::from("c");
+        db.inner.insert(key_a.clone(), 1.into());
+        db.inner.insert(key_b.clone(), 2.into());
+        db.inner.insert(key_c.clone(), 3.into());
+
+        // When there are no expired keys
+        {
+            let result = db.filter_keys(|k| k.as_ref() != b"c");
+
+            // Note: result has no guaranteed order, so test individually
+            assert!(result.contains(&&key_a));
+            assert!(result.contains(&&key_b));
+            assert!(!result.contains(&&key_c));
+        }
+
+        // When there is one expired key
+        {
+            let expires_at = Instant::now() - Duration::from_millis(1);
+            db.set_expire(&key_a, expires_at);
+
+            let result = db.filter_keys(|k| k.as_ref() != b"c");
+
+            assert!(!result.contains(&&key_a));
+            assert!(result.contains(&&key_b));
+            assert!(!result.contains(&&key_c));
         }
     }
 }
