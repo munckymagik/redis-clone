@@ -3,12 +3,13 @@ use std::{
     collections::HashMap,
     collections::VecDeque,
     iter::{FromIterator, IntoIterator},
+    sync::Arc,
     time::Instant,
 };
 
 pub struct Database {
-    inner: HashMap<ByteString, RObj>,
-    expires: HashMap<ByteString, Instant>,
+    inner: HashMap<Arc<ByteString>, RObj>,
+    expires: HashMap<Arc<ByteString>, Instant>,
 }
 
 impl Database {
@@ -39,6 +40,7 @@ impl Database {
         self.inner
             .keys()
             .filter(|key| !self.is_expired(key) && f(key))
+            .map(|k| k.as_ref())
             .collect()
     }
 
@@ -53,7 +55,7 @@ impl Database {
     }
 
     pub fn insert(&mut self, key: ByteString, value: RObj) {
-        self.inner.insert(key, value);
+        self.inner.insert(Arc::new(key), value);
     }
 
     pub fn remove(&mut self, key: &ByteString) -> Option<RObj> {
@@ -62,13 +64,12 @@ impl Database {
     }
 
     pub fn set_expire(&mut self, key: &ByteString, expires_at: Instant) -> bool {
-        if !self.inner.contains_key(key) {
-            return false;
+        if let Some((existing_key, _)) = self.inner.get_key_value(key) {
+            self.expires.insert(Arc::clone(existing_key), expires_at);
+            return true
         };
 
-        self.expires.insert(key.clone(), expires_at);
-
-        true
+        false
     }
 
     pub fn get_expire(&self, key: &ByteString) -> Option<Instant> {
@@ -376,9 +377,9 @@ mod tests {
     #[test]
     fn test_filter_keys() {
         let mut db = Database::new();
-        let key_a = ByteString::from("a");
-        let key_b = ByteString::from("b");
-        let key_c = ByteString::from("c");
+        let key_a = Arc::new(ByteString::from("a"));
+        let key_b = Arc::new(ByteString::from("b"));
+        let key_c = Arc::new(ByteString::from("c"));
         db.inner.insert(key_a.clone(), 1.into());
         db.inner.insert(key_b.clone(), 2.into());
         db.inner.insert(key_c.clone(), 3.into());
@@ -388,9 +389,9 @@ mod tests {
             let result = db.filter_keys(|k| k.as_ref() != b"c");
 
             // Note: result has no guaranteed order, so test individually
-            assert!(result.contains(&&key_a));
-            assert!(result.contains(&&key_b));
-            assert!(!result.contains(&&key_c));
+            assert!(result.contains(&key_a.as_ref()));
+            assert!(result.contains(&key_b.as_ref()));
+            assert!(!result.contains(&key_c.as_ref()));
         }
 
         // When there is one expired key
@@ -400,9 +401,9 @@ mod tests {
 
             let result = db.filter_keys(|k| k.as_ref() != b"c");
 
-            assert!(!result.contains(&&key_a));
-            assert!(result.contains(&&key_b));
-            assert!(!result.contains(&&key_c));
+            assert!(!result.contains(&key_a.as_ref()));
+            assert!(result.contains(&key_b.as_ref()));
+            assert!(!result.contains(&key_c.as_ref()));
         }
     }
 }
