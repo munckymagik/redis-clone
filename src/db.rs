@@ -8,14 +8,14 @@ use std::{
 };
 
 pub struct Database {
-    inner: HashMap<Arc<ByteString>, RObj>,
+    store: HashMap<Arc<ByteString>, RObj>,
     expires: HashMap<Arc<ByteString>, Instant>,
 }
 
 impl Database {
     pub fn new() -> Self {
         Self {
-            inner: HashMap::new(),
+            store: HashMap::new(),
             expires: HashMap::new(),
         }
     }
@@ -25,7 +25,7 @@ impl Database {
             return None;
         }
 
-        self.inner.get(key)
+        self.store.get(key)
     }
 
     pub fn get_mut<'a>(&'a mut self, key: &ByteString) -> Option<&'a mut RObj> {
@@ -33,11 +33,11 @@ impl Database {
             return None;
         }
 
-        self.inner.get_mut(key)
+        self.store.get_mut(key)
     }
 
     pub fn filter_keys(&self, f: impl Fn(&ByteString) -> bool) -> Vec<&ByteString> {
-        self.inner
+        self.store
             .keys()
             .filter(|key| !self.is_expired(key) && f(key))
             .map(|k| k.as_ref())
@@ -46,27 +46,27 @@ impl Database {
 
     pub fn clear(&mut self) {
         // Clears all the key-values but retains memory
-        self.inner.clear();
+        self.store.clear();
         self.expires.clear();
 
         // Releases memory
-        self.inner.shrink_to_fit();
+        self.store.shrink_to_fit();
         self.expires.shrink_to_fit();
     }
 
     pub fn insert(&mut self, key: ByteString, value: RObj) {
-        self.inner.insert(Arc::new(key), value);
+        self.store.insert(Arc::new(key), value);
     }
 
     pub fn remove(&mut self, key: &ByteString) -> Option<RObj> {
         self.expires.remove(key);
-        self.inner.remove(key)
+        self.store.remove(key)
     }
 
     pub fn set_expire(&mut self, key: &ByteString, expires_at: Instant) -> bool {
-        if let Some((existing_key, _)) = self.inner.get_key_value(key) {
+        if let Some((existing_key, _)) = self.store.get_key_value(key) {
             self.expires.insert(Arc::clone(existing_key), expires_at);
-            return true
+            return true;
         };
 
         false
@@ -196,14 +196,14 @@ mod tests {
         db.set_expire(&key, expires_at);
 
         // Before clearing
-        assert_eq!(db.inner.len(), 1);
+        assert_eq!(db.store.len(), 1);
         assert_eq!(db.expires.len(), 1);
 
         // After clearing
         db.clear();
-        assert_eq!(db.inner.len(), 0);
+        assert_eq!(db.store.len(), 0);
         assert_eq!(db.expires.len(), 0);
-        assert_eq!(db.inner.capacity(), 0);
+        assert_eq!(db.store.capacity(), 0);
         assert_eq!(db.expires.capacity(), 0);
     }
 
@@ -249,7 +249,7 @@ mod tests {
 
             // It should remove the key
             assert!(db.remove(&key).is_some());
-            assert!(!db.inner.contains_key(&key));
+            assert!(!db.store.contains_key(&key));
         }
 
         // When there is an expiry set
@@ -261,7 +261,7 @@ mod tests {
 
             // It should remove the key
             assert!(db.remove(&key).is_some());
-            assert!(!db.inner.contains_key(&key));
+            assert!(!db.store.contains_key(&key));
 
             // It should also remove the expiry
             assert!(db.get_expire(&key).is_none());
@@ -278,7 +278,7 @@ mod tests {
         {
             // It should not be removed
             assert!(!db.remove_if_expired(&key));
-            assert!(db.inner.contains_key(&key));
+            assert!(db.store.contains_key(&key));
         }
 
         // When there is an expiry in the future
@@ -288,7 +288,7 @@ mod tests {
 
             // It should not be removed
             assert!(!db.remove_if_expired(&key));
-            assert!(db.inner.contains_key(&key));
+            assert!(db.store.contains_key(&key));
         }
 
         // When there is an expiry in the past
@@ -298,7 +298,7 @@ mod tests {
 
             // It should be removed
             assert!(db.remove_if_expired(&key));
-            assert!(!db.inner.contains_key(&key));
+            assert!(!db.store.contains_key(&key));
         }
     }
 
@@ -312,7 +312,7 @@ mod tests {
         {
             // It should return the value
             assert!(db.get(&key).is_some());
-            assert!(db.inner.contains_key(&key));
+            assert!(db.store.contains_key(&key));
         }
 
         // When there is an expiry in the future
@@ -322,7 +322,7 @@ mod tests {
 
             // It should return the value
             assert!(db.get(&key).is_some());
-            assert!(db.inner.contains_key(&key));
+            assert!(db.store.contains_key(&key));
         }
 
         // When there is an expiry in the past
@@ -334,7 +334,7 @@ mod tests {
             assert!(db.get(&key).is_none());
 
             // It should have removed the value
-            assert!(!db.inner.contains_key(&key));
+            assert!(!db.store.contains_key(&key));
         }
     }
 
@@ -348,7 +348,7 @@ mod tests {
         {
             // It should return the value
             assert!(db.get_mut(&key).is_some());
-            assert!(db.inner.contains_key(&key));
+            assert!(db.store.contains_key(&key));
         }
 
         // When there is an expiry in the future
@@ -358,7 +358,7 @@ mod tests {
 
             // It should return the value
             assert!(db.get_mut(&key).is_some());
-            assert!(db.inner.contains_key(&key));
+            assert!(db.store.contains_key(&key));
         }
 
         // When there is an expiry in the past
@@ -370,7 +370,7 @@ mod tests {
             assert!(db.get_mut(&key).is_none());
 
             // It should have removed the value
-            assert!(!db.inner.contains_key(&key));
+            assert!(!db.store.contains_key(&key));
         }
     }
 
@@ -380,9 +380,9 @@ mod tests {
         let key_a = Arc::new(ByteString::from("a"));
         let key_b = Arc::new(ByteString::from("b"));
         let key_c = Arc::new(ByteString::from("c"));
-        db.inner.insert(key_a.clone(), 1.into());
-        db.inner.insert(key_b.clone(), 2.into());
-        db.inner.insert(key_c.clone(), 3.into());
+        db.store.insert(key_a.clone(), 1.into());
+        db.store.insert(key_b.clone(), 2.into());
+        db.store.insert(key_c.clone(), 3.into());
 
         // When there are no expired keys
         {
