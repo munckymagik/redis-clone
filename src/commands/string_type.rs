@@ -28,7 +28,8 @@ pub(crate) fn set_command(
         }
     }
 
-    if nx && db.contains_key(key) || xx && !db.contains_key(key) {
+    let is_existing = db.get(key).is_some();
+    if nx && is_existing || xx && !is_existing {
         response.add_null_string();
         return Ok(());
     }

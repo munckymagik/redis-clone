@@ -6,7 +6,10 @@ use crate::{
     response_ext::ResponseExt,
 };
 use byte_glob;
-use std::convert::TryInto;
+use std::{
+    convert::TryInto,
+    time::{Duration, Instant},
+};
 
 pub(crate) fn del_command(
     db: &mut Database,
@@ -34,7 +37,7 @@ pub(crate) fn exists_command(
     let mut count = 0;
 
     for key in request.arguments() {
-        if db.contains_key(key) {
+        if db.get(key).is_some() {
             count += 1;
         }
     }
@@ -50,14 +53,9 @@ pub(crate) fn keys_command(
     response: &mut Response,
 ) -> Result<()> {
     let pattern = request.arg(0)?;
+    let all_keys = pattern.as_ref() == b"*";
 
-    let results: Vec<_> = if pattern.as_ref() == b"*" {
-        db.keys().collect()
-    } else {
-        db.keys()
-            .filter(|key| byte_glob::glob(pattern, key))
-            .collect()
-    };
+    let results = db.filter_keys(|key| all_keys || byte_glob::glob(pattern, key));
 
     response.add_array_len(results.len().try_into()?);
     for key in results {
@@ -140,6 +138,79 @@ pub(crate) fn object_command(
         None => {
             response.add_reply_subcommand_syntax_error(req.command(), "(none)".into());
         }
+    }
+
+    Ok(())
+}
+
+pub(crate) fn expire_command(
+    db: &mut Database,
+    request: &Request,
+    response: &mut Response,
+) -> Result<()> {
+    let key = request.arg(0)?;
+
+    if db.get(key).is_none() {
+        response.add_integer(0);
+        return Ok(());
+    }
+
+    let seconds: i64 = parse_arg_or_reply_with_err!(1, request, response);
+
+    if !seconds.is_positive() {
+        db.remove(key);
+        response.add_integer(1);
+        return Ok(());
+    }
+
+    let expires_at = Instant::now() + Duration::from_secs(seconds.try_into()?);
+    let res = db.set_expire(key, expires_at);
+    response.add_integer(res.into());
+
+    Ok(())
+}
+
+pub(crate) fn persist_command(
+    db: &mut Database,
+    request: &Request,
+    response: &mut Response,
+) -> Result<()> {
+    let key = request.arg(0)?;
+
+    if db.get(key).is_none() {
+        response.add_integer(0);
+        return Ok(());
+    }
+
+    let res = db.persist(key);
+    response.add_integer(res.into());
+    Ok(())
+}
+
+pub(crate) fn ttl_command(
+    db: &mut Database,
+    request: &Request,
+    response: &mut Response,
+) -> Result<()> {
+    let key = request.arg(0)?;
+
+    if db.get(key).is_none() {
+        response.add_integer(-2);
+        return Ok(());
+    }
+
+    let now = Instant::now();
+
+    match db.get_expire(key) {
+        // Has an active future expiration time
+        Some(when) if when > now => {
+            let ttl: Duration = when - now;
+            response.add_integer(ttl.as_secs().try_into()?);
+        }
+        // Key exists but has no expiry
+        None => response.add_integer(-1),
+        // Should not be a possible given we are calling get beforehand
+        _ => unreachable!(),
     }
 
     Ok(())

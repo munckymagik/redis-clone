@@ -3,8 +3,11 @@ RSpec.describe "Keyspace commands", include_connection: true do
     specify "the arity for each command is correctly specified" do
       expect(redis.command("info", "del").dig(0, 1)).to eql(-2)
       expect(redis.command("info", "exists").dig(0, 1)).to eql(-2)
+      expect(redis.command("info", "expire").dig(0, 1)).to eql(3)
       expect(redis.command("info", "keys").dig(0, 1)).to eql(2)
       expect(redis.command("info", "object").dig(0, 1)).to eql(-2)
+      expect(redis.command("info", "persist").dig(0, 1)).to eql(2)
+      expect(redis.command("info", "ttl").dig(0, 1)).to eql(2)
       expect(redis.command("info", "type").dig(0, 1)).to eql(2)
     end
   end
@@ -42,6 +45,14 @@ RSpec.describe "Keyspace commands", include_connection: true do
         it "returns an empty result" do
           expect(redis.keys('[]')).to be_empty
           expect(redis.keys('[ab')).to be_empty
+        end
+      end
+
+      context "when some of the keys have expired" do
+        it "does not list the expired keys", slow: true do
+          redis.expire("key_x", 1)
+          sleep(1.5)
+          expect(redis.keys("*").sort).to eql(keynames - %w[key_x])
         end
       end
     end
@@ -156,6 +167,122 @@ RSpec.describe "Keyspace commands", include_connection: true do
             expect(redis.object("encoding", "c")).to eql("int")
           end
         end
+      end
+    end
+  end
+
+  describe "EXPIRE" do
+    context "when the specified key does not exist" do
+      it "returns 0 (false)" do
+        expect(redis.expire("does-not-exist", 10)).to be(false)
+      end
+    end
+
+    context "when the specified key exists" do
+      it "sets the expiration for the key" do
+        redis.set("x", "abc")
+        expect(redis.expire("x", 10)).to be(true)
+      end
+    end
+
+    context "when the specified key exists and has a future expiry" do
+      it "updates the expiration for the key" do
+        redis.set("x", "abc")
+        redis.expire("x", 10)
+        redis.expire("x", 100)
+        expect(redis.ttl("x")).to be_between(0, 100)
+      end
+    end
+
+    context "when the specified key exists and ttl is not positive" do
+      it "deletes the key" do
+        redis.set("x", "abc")
+        expect(redis.expire("x", 0)).to be(true)
+        expect(redis.exists("x")).to be(false)
+
+        redis.set("x", "abc")
+        expect(redis.expire("x", -1)).to be(true)
+        expect(redis.exists("x")).to be(false)
+      end
+    end
+
+    context "when the specified key has already expired", slow: true do
+      it "removes the key" do
+        redis.set("x", "abc")
+        expect(redis.expire("x", 1)).to be(true)
+        sleep(1.5)
+        expect(redis.expire("x", 1)).to be(false)
+        expect(redis.exists("x")).to be(false)
+      end
+    end
+
+    context "when ttl is not an integer" do
+      it "replies with an error" do
+        redis.set("x", "123")
+        expect { redis.expire("x", "abc") }
+          .to raise_error(
+            "ERR value is not an integer or out of range"
+          )
+      end
+    end
+  end
+
+  describe "PERSIST" do
+    context "when the specified key does not exist" do
+      it "returns 0 (false)" do
+        expect(redis.persist("does-not-exist")).to be(false)
+      end
+    end
+
+    context "when the specified key exists" do
+      it "returns 1 (true)" do
+        redis.set("x", "abc")
+        redis.expire("x", 10)
+        expect(redis.persist("x")).to be(true)
+        expect(redis.ttl("x")).to eql(-1)
+      end
+    end
+
+    context "when the specified key has already expired", slow: true do
+      it "removes the key" do
+        redis.set("x", "abc")
+        expect(redis.expire("x", 1)).to be(true)
+        sleep(1.5)
+        expect(redis.persist("x")).to be(false)
+        expect(redis.exists("x")).to be(false)
+      end
+    end
+  end
+
+  describe "TTL" do
+    context "when the specified key does not exist" do
+      it "returns -2" do
+        expect(redis.ttl("does-not-exist")).to eql(-2)
+      end
+    end
+
+    context "when the specified key has expired", slow: true do
+      it "returns -2 and removes the key" do
+        redis.set("x", "abc")
+        redis.expire("x", 1)
+        sleep(1.5)
+        expect(redis.ttl("x")).to eql(-2)
+        expect(redis.exists("x")).to be(false)
+      end
+    end
+
+    context "when the specified key exists but has no associated expire" do
+      it "returns -1" do
+        redis.set("x", "abc")
+        expect(redis.ttl("x")).to eql(-1)
+      end
+    end
+
+    context "when the specified key exists and has an expire" do
+      it "returns emaining time to live of the key" do
+        redis.set("x", "abc")
+        redis.expire("x", 10)
+        expect(redis.ttl("x")).to be_between(0, 10)
       end
     end
   end
