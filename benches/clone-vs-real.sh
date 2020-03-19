@@ -1,6 +1,6 @@
 #!/bin/sh
 
-benches="set,get,incr,lpush,rpush,lpop,rpop,lrange"
+benches="set,get,incr,lpush,rpush,lpop,rpop,lrange,hset"
 opts="-q"
 
 redis-cli flushdb
