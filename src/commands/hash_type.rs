@@ -124,15 +124,20 @@ pub(crate) fn hgetall_command(
     response: &mut Response,
 ) -> Result<()> {
     let key = request.arg(0)?;
-    let _values = &request.arguments()[1..];
 
     match db.get(key) {
-        Some(RObj::Hash(ref _hash)) => {
-            response.add_integer(0);
+        Some(RObj::Hash(ref hash)) => {
+            let len: i64 = hash.len().try_into()?;
+            response.add_array_len(len * 2);
+
+            for (key, value) in hash {
+                response.add_bulk_string(key);
+                response.add_bulk_string(value);
+            }
         }
         Some(_) => response.add_reply_wrong_type(),
         None => {
-            response.add_integer(0);
+            response.add_array_len(0);
         }
     }
 

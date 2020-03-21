@@ -113,4 +113,23 @@ RSpec.describe "Hash commands", include_connection: true do
       end
     end
   end
+
+  describe "HGETALL" do
+    context "when the db key does not already exist" do
+      it "returns an empty array" do
+        # Underneath the client library, Redis returns an array
+        expect(redis.call("hgetall", "x")).to eql([])
+        # The client library knows to chunk the array in key value pairs to
+        # convert to a Ruby hash
+        expect(redis.hgetall("x")).to eql({})
+      end
+    end
+
+    context "when the db key already exists" do
+      it "returns an array of keys and values" do
+        redis.hmset("x", "y", "z", "1", "2")
+        expect(redis.hgetall("x")).to eql("y" => "z", "1" => "2")
+      end
+    end
+  end
 end
