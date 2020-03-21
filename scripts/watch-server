@@ -1,0 +1,9 @@
+#!/bin/bash
+
+# Watches:
+# - All files except ignored files and the feature tests (*.rb)
+# Runs:
+# - cargo fmt in "check" mode
+# - cargo run (i.e. a debug build)
+
+cargo watch --ignore '*.rb' -x "fmt -- --check" -x run

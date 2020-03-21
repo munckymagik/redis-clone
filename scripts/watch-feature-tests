@@ -1,0 +1,15 @@
+#!/bin/bash
+
+# Watches:
+# - The debug server binary
+# Runs the feature tests against:
+# - "real" Redis (make sure it is running)
+# - Redis clone (make sure it is running or run the `watch-server` script)
+
+cargo watch \
+  --ignore-nothing \
+  -w "$(pwd)/target/debug/redis-clone" \
+  -w "$(pwd)/tests/functional/hash_type_spec.rb" \
+  -s "cd $(pwd)/tests/functional" \
+  -s "TEST_REAL_REDIS=1 bin/rspec hash_type_spec.rb" \
+  -s "bin/rspec hash_type_spec.rb"
