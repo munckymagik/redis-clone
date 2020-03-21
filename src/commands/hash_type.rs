@@ -103,15 +103,25 @@ pub(crate) fn hmget_command(
     response: &mut Response,
 ) -> Result<()> {
     let key = request.arg(0)?;
-    let _values = &request.arguments()[1..];
+    let hash_keys = &request.arguments()[1..];
 
     match db.get(key) {
-        Some(RObj::Hash(ref _hash)) => {
-            response.add_integer(0);
+        Some(RObj::Hash(ref hash)) => {
+            let len: i64 = hash_keys.len().try_into()?;
+            response.add_array_len(len);
+
+            let iter = hash_keys.iter().map(|k| hash.get(k));
+            for maybe_value in iter {
+                match maybe_value {
+                    Some(value) => response.add_bulk_string(value),
+                    None => response.add_null_string(),
+                };
+            }
         }
         Some(_) => response.add_reply_wrong_type(),
         None => {
-            response.add_integer(0);
+            response.add_array_len(1);
+            response.add_null_string();
         }
     }
 

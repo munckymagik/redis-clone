@@ -114,6 +114,21 @@ RSpec.describe "Hash commands", include_connection: true do
     end
   end
 
+  describe "HMGET" do
+    context "when the db key does not already exist" do
+      it "returns null" do
+        expect(redis.hmget("x", "y")).to eql([nil])
+      end
+    end
+
+    context "when the db key already exists" do
+      it "returns values where they are found or nil where they don't exist" do
+        redis.hmset("x", "a", "1", "c", "3")
+        expect(redis.hmget("x", "a", "b", "c")).to eql(["1", nil, "3"])
+      end
+    end
+  end
+
   describe "HGETALL" do
     context "when the db key does not already exist" do
       it "returns an empty array" do
