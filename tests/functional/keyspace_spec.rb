@@ -116,6 +116,11 @@ RSpec.describe "Keyspace commands", include_connection: true do
         redis.rpush("x", 1)
         expect(redis.type("x")).to eql("list")
       end
+
+      it "returns 'hash' for list types" do
+        redis.hset("x", "y", 1)
+        expect(redis.type("x")).to eql("hash")
+      end
     end
   end
 
@@ -156,15 +161,18 @@ RSpec.describe "Keyspace commands", include_connection: true do
           redis.set("a", "string")
           redis.rpush("b", %w[1 2])
           redis.set("c", 1)
+          redis.hset("d", "x", "y")
 
           if using_real_redis?
             expect(redis.object("encoding", "a")).to eql("embstr")
             expect(redis.object("encoding", "b")).to eql("quicklist")
             expect(redis.object("encoding", "c")).to eql("int")
+            expect(redis.object("encoding", "d")).to eql("ziplist")
           else
             expect(redis.object("encoding", "a")).to eql("byte_string")
             expect(redis.object("encoding", "b")).to eql("vecdeque")
             expect(redis.object("encoding", "c")).to eql("int")
+            expect(redis.object("encoding", "d")).to eql("hash_map")
           end
         end
       end

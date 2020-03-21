@@ -3,6 +3,7 @@ use crate::{
 };
 use byte_string::ByteStr;
 
+mod hash_type;
 mod keyspace;
 mod list_type;
 mod server;
@@ -147,6 +148,31 @@ static COMMAND_TABLE: &[RedisCommand] = &[
         name: b"lrem",
         handler: list_type::lrem_command,
         arity: 4,
+    },
+    RedisCommand {
+        name: b"hset",
+        handler: hash_type::hset_command,
+        arity: -4,
+    },
+    RedisCommand {
+        name: b"hget",
+        handler: hash_type::hget_command,
+        arity: 3,
+    },
+    RedisCommand {
+        name: b"hmset",
+        handler: hash_type::hmset_command,
+        arity: -4,
+    },
+    RedisCommand {
+        name: b"hmget",
+        handler: hash_type::hmget_command,
+        arity: -3,
+    },
+    RedisCommand {
+        name: b"hgetall",
+        handler: hash_type::hgetall_command,
+        arity: 2,
     },
     RedisCommand {
         name: b"command",

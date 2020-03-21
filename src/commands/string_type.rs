@@ -114,19 +114,6 @@ fn general_incr(
     let key = request.arg(0)?;
 
     match db.get(key) {
-        Some(RObj::String(old_value)) => {
-            if let Some(value) = parse_i64_or_reply_with_error(response, old_value) {
-                if let Some(new_value) = value.checked_add(increment) {
-                    db.insert(
-                        key.to_owned(),
-                        ByteString::from(new_value.to_string()).into(),
-                    );
-                    response.add_integer(new_value);
-                } else {
-                    response.add_error("ERR increment or decrement would overflow")
-                }
-            }
-        }
         Some(RObj::Int(old_value)) => {
             if let Some(new_value) = old_value.checked_add(increment) {
                 db.insert(key.to_owned(), new_value.into());
@@ -135,6 +122,9 @@ fn general_incr(
                 response.add_error("ERR increment or decrement would overflow")
             }
         }
+        // If RObj could not parse the existing value as an int when it was set
+        // there is no point us trying now. So reply with NaN.
+        Some(RObj::String(_)) => response.add_reply_not_a_number(),
         Some(_) => response.add_reply_wrong_type(),
         None => {
             db.insert(key.to_owned(), increment.into());

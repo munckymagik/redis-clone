@@ -102,6 +102,7 @@ pub enum RObj {
     Int(i64),
     String(ByteString),
     List(VecDeque<ByteString>),
+    Hash(HashMap<ByteString, ByteString>),
 }
 
 impl From<i64> for RObj {
