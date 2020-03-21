@@ -46,7 +46,6 @@ RSpec.describe "Server commands", include_connection: true do
 
     describe "INFO" do
       it "returns the requested subset of supported commands" do
-        requested = %w[set get]
         output = redis.command("info", "set", "get")
         expect(output.count).to eql(2)
         expect(output[0].first).to eql("set")
