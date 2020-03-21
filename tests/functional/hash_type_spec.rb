@@ -2,8 +2,8 @@ RSpec.describe "Hash commands", include_connection: true do
   describe "arity" do
     specify "the arity for each command is correctly specified" do
       expect(redis.command("info", "hset").dig(0, 1)).to eql(-4)
-      expect(redis.command("info", "hget").dig(0, 1)).to eql(3)
       expect(redis.command("info", "hmset").dig(0, 1)).to eql(-4)
+      expect(redis.command("info", "hget").dig(0, 1)).to eql(3)
       expect(redis.command("info", "hmget").dig(0, 1)).to eql(-3)
       expect(redis.command("info", "hgetall").dig(0, 1)).to eql(2)
     end
@@ -76,6 +76,13 @@ RSpec.describe "Hash commands", include_connection: true do
           }.to raise_error("ERR wrong number of arguments for HMSET")
         end
       end
+    end
+  end
+
+  describe "HMSET" do
+    it "is identical to HSET except it has a different return value" do
+      expect(redis.hmset("x", "a", 1, "b", 2)).to eql("OK")
+      expect(redis.hmset("x", "a", 1, "c", 2)).to eql("OK")
     end
   end
 

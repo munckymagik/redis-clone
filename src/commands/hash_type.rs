@@ -8,10 +8,11 @@ use crate::{
 use byte_string::ByteString;
 use std::{collections::HashMap, convert::TryInto};
 
-pub(crate) fn hset_command(
+fn generic_hset_command(
     db: &mut Database,
     request: &Request,
     response: &mut Response,
+    respond_with_count: bool,
 ) -> Result<()> {
     let key = request.arg(0)?;
     let values = &request.arguments()[1..];
@@ -31,8 +32,12 @@ pub(crate) fn hset_command(
                 .map(|pair| (pair[0].clone(), pair[1].clone()));
             hash.extend(new_hash);
 
-            let count_keys_added = hash.len() - prev_len;
-            response.add_integer(count_keys_added.try_into()?);
+            if respond_with_count {
+                let count_keys_added = hash.len() - prev_len;
+                response.add_integer(count_keys_added.try_into()?);
+            } else {
+                response.add_simple_string("OK");
+            }
         }
         Some(_) => response.add_reply_wrong_type(),
         None => {
@@ -43,11 +48,31 @@ pub(crate) fn hset_command(
             let count_keys_added = new_hash.len();
             db.insert(key.clone(), RObj::Hash(new_hash));
 
-            response.add_integer(count_keys_added.try_into()?);
+            if respond_with_count {
+                response.add_integer(count_keys_added.try_into()?);
+            } else {
+                response.add_simple_string("OK");
+            }
         }
     }
 
     Ok(())
+}
+
+pub(crate) fn hset_command(
+    db: &mut Database,
+    request: &Request,
+    response: &mut Response,
+) -> Result<()> {
+    generic_hset_command(db, request, response, true)
+}
+
+pub(crate) fn hmset_command(
+    db: &mut Database,
+    request: &Request,
+    response: &mut Response,
+) -> Result<()> {
+    generic_hset_command(db, request, response, false)
 }
 
 pub(crate) fn hget_command(
@@ -66,27 +91,6 @@ pub(crate) fn hget_command(
         Some(_) => response.add_reply_wrong_type(),
         None => {
             response.add_null_string();
-        }
-    }
-
-    Ok(())
-}
-
-pub(crate) fn hmset_command(
-    db: &mut Database,
-    request: &Request,
-    response: &mut Response,
-) -> Result<()> {
-    let key = request.arg(0)?;
-    let _values = &request.arguments()[1..];
-
-    match db.get_mut(key) {
-        Some(RObj::Hash(ref mut _hash)) => {
-            response.add_integer(0);
-        }
-        Some(_) => response.add_reply_wrong_type(),
-        None => {
-            response.add_integer(0);
         }
     }
 
