@@ -4,15 +4,33 @@
 
 ⚠️ **NOT FOR PRODUCTION USE - toy only** ⚠️
 
-This is a clone of a portion of Redis for two reasons:
+This is a clone of Redis.
 
-* Give me a structured way of getting to know the real Redis source and learning what makes it so good.
-* Provide a decent sized project to exercise Rust's new async/await features and async I/O.
+## Features
+
+It supports a tiny subset of the features in _real_ Redis.
+
+The current goal is to support [just enough to run the opensource features of Sidekiq](https://github.com/munckymagik/redis-clone/issues/1).
+
+I have no serious aims to support the full features of _real_ Redis.
+
+## Why?
+
+It is for-fun only and not intended to be a "[rewrite it in Rust](https://github.com/ansuz/RIIR)" project 😀.
+
+It exists because I wanted:
+
+* a structured way of getting to know the [_real_ Redis source](https://github.com/antirez/redis).
+* to gain a deeper understanding of how Redis works and why it performs as it does.
+* a sufficiently non-trivial project to exercise Rust's async/await and async I/O facilities.
+
+However, my intention is to write fully production quality code, as far as possible. So it might be
+useful to seed new services that could be driven using Redis-style commands using the [RESP protocol](https://redis.io/topics/protocol).
 
 ## Dependencies
 
 * Any version of Rust with "Rust 2018 edition" compatibility
-  * Get Rust from https://rustup.rs/
+  * You can get Rust using https://rustup.rs/
 * Redis itself
   * The API/functional tests can be run against _real_ Redis to cross validate
   * We can use `redis-cli` to connect to and interact with the clone
@@ -103,10 +121,18 @@ TEST_REAL_REDIS=1 bundle exec rspec
 
 ## Benchmarking
 
-Use the `redis-benchmark` tool, but make sure to only specify tests for commands the clone supports:
+The `redis-benchmark` tool can be used, but make sure to
+  1. only specify tests for commands the clone supports
+  2. specify port 8080
 
 ```
 redis-benchmark -p 8080 -t SET,GET,INCR
+```
+
+A script that runs the supported tests against both _real_ Redis the clone is available in:
+
+```
+./benches/clone-vs-real.sh
 ```
 
 ## Development
