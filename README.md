@@ -108,3 +108,20 @@ Use the `redis-benchmark` tool, but make sure to only specify tests for commands
 ```
 redis-benchmark -p 8080 -t SET,GET,INCR
 ```
+
+## Development
+
+Use the scripts under the `./scripts` folder to watch, build and re-run the tests.
+
+They depend on [cargo-watch](https://github.com/passcod/cargo-watch) so make sure to install it
+first with `cargo install cargo-watch`. Then
+
+1. In one terminal watch and rebuild the server:
+   ```bash
+   ./scripts/watch-server
+   ```
+2. In another terminal watch the server and re-run the tests. This also runs the tests against
+   "real" Redis so make sure that's running too:
+   ```bash
+   ./scripts/watch-feature-tests
+   ```
