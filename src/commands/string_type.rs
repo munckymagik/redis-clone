@@ -11,18 +11,6 @@ use std::{
     time::{Duration, Instant},
 };
 
-macro_rules! parse_or_reply_with_err {
-    ($arg:expr, $resp:expr) => {
-        match $arg.parse() {
-            Ok(n) => n,
-            Err(_) => {
-                $resp.add_reply_not_a_number();
-                return Ok(());
-            }
-        };
-    };
-}
-
 pub(crate) fn set_command(
     db: &mut Database,
     request: &Request,
