@@ -6,6 +6,22 @@ use crate::{
     response_ext::ResponseExt,
 };
 use byte_string::ByteString;
+use std::{
+    convert::TryInto,
+    time::{Duration, Instant},
+};
+
+macro_rules! parse_or_reply_with_err {
+    ($arg:expr, $resp:expr) => {
+        match $arg.parse() {
+            Ok(n) => n,
+            Err(_) => {
+                $resp.add_reply_not_a_number();
+                return Ok(());
+            }
+        };
+    };
+}
 
 pub(crate) fn set_command(
     db: &mut Database,
@@ -16,26 +32,47 @@ pub(crate) fn set_command(
     let value = request.arg(1)?;
     let mut nx = false;
     let mut xx = false;
+    let mut maybe_ttl: Option<i64> = None;
+    let mut args = &request.arguments()[2..];
 
-    for arg in &request.arguments()[2..] {
-        match arg.to_lowercase().as_ref() {
+    while let Some(arg) = args.get(0) {
+        let arg = arg.to_lowercase();
+        match arg.as_ref() {
             b"nx" if !xx => nx = true,
             b"xx" if !nx => xx = true,
+            b"ex" | b"px" if maybe_ttl.is_none() && args.get(1).is_some() => {
+                let mut ttl: i64 = parse_or_reply_with_err!(args[1], response);
+                if !ttl.is_positive() {
+                    response.add_error("ERR invalid expire time in set");
+                    return Ok(());
+                }
+                if arg[0] == b'e' {
+                    ttl *= 1000;
+                }
+                maybe_ttl = Some(ttl);
+                args = &args[1..];
+            }
             _ => {
                 response.add_error("ERR syntax error");
                 return Ok(());
             }
         }
+
+        args = &args[1..];
     }
 
     let is_existing = db.get(key).is_some();
     if nx && is_existing || xx && !is_existing {
         response.add_null_string();
-        return Ok(());
+    } else {
+        db.insert(key.clone(), value.clone().into());
+        response.add_simple_string("OK");
     }
 
-    db.insert(key.clone(), value.clone().into());
-    response.add_simple_string("OK");
+    if let Some(millis) = maybe_ttl {
+        let expires_at = Instant::now() + Duration::from_millis(millis.try_into()?);
+        db.set_expire(key, expires_at);
+    }
 
     Ok(())
 }
