@@ -52,21 +52,6 @@ RSpec.describe "Strings commands", include_connection: true do
         expect(redis.set("x", "abc", xx: true)).to be(false)
         expect(redis.exists("x")).to be(false)
       end
-
-      specify "encodes integers and characters differently" do
-        redis.set("x", "a")
-        expect(redis.object("encoding", "x")).to eql(
-          using_real_redis? ? "embstr" : "byte_string"
-        )
-        redis.del("x")
-
-        redis.set("x", "-1")
-        expect(redis.object("encoding", "x")).to eql("int")
-        redis.set("x", "0")
-        expect(redis.object("encoding", "x")).to eql("int")
-        redis.set("x", "1")
-        expect(redis.object("encoding", "x")).to eql("int")
-      end
     end
 
     context "when key already holds a value" do
@@ -91,10 +76,136 @@ RSpec.describe "Strings commands", include_connection: true do
     end
 
     context "if both nx and xx are specified" do
-      it 'responds with a syntax error' do
+      it "responds with a syntax error" do
         expect { redis.set("x", "y", xx: true, nx: true) }
           .to raise_error("ERR syntax error")
       end
+    end
+
+    describe "setting expire times" do
+      context "when the key does not exist" do
+        it "sets a ttl if EX is specified" do
+          redis.set("x", "a", ex: 10)
+          expect(redis.ttl("x")).to be_between(0, 10)
+        end
+
+        it "sets a ttl if PX is specified" do
+          redis.set("x", "a", px: 20_000)
+          expect(redis.ttl("x")).to be_between(10, 20)
+        end
+      end
+
+      context "when the key already exists but is persistant" do
+        it "sets a ttl if EX is specified" do
+          redis.set("x", "a")
+          expect(redis.ttl("x")).to eql(-1)
+          redis.set("x", "a", ex: 10)
+          expect(redis.ttl("x")).to be_between(0, 10)
+        end
+
+        it "sets a ttl if PX is specified" do
+          redis.set("x", "a")
+          expect(redis.ttl("x")).to eql(-1)
+          redis.set("x", "a", px: 20_000)
+          expect(redis.ttl("x")).to be_between(10, 20)
+        end
+      end
+
+      context "when the key already exists and has a ttl set" do
+        it "overwrites the ttl if EX is specified" do
+          redis.set("x", "a", ex: 10)
+          expect(redis.ttl("x")).to be_between(0, 10)
+          redis.set("x", "a", ex: 20)
+          expect(redis.ttl("x")).to be_between(10, 20)
+        end
+
+        it "overwrites the ttl if PX is specified" do
+          redis.set("x", "a", px: 10_000)
+          expect(redis.ttl("x")).to be_between(0, 10)
+          redis.set("x", "a", px: 20_000)
+          expect(redis.ttl("x")).to be_between(10, 20)
+        end
+      end
+
+      context "when the tll is not positive" do
+        it "returns an error" do
+          expect {
+            redis.set("x", "a", ex: 0)
+          }.to raise_error("ERR invalid expire time in set")
+
+          expect {
+            redis.set("x", "a", ex: -1)
+          }.to raise_error("ERR invalid expire time in set")
+
+          expect {
+            redis.set("x", "a", px: 0)
+          }.to raise_error("ERR invalid expire time in set")
+
+          expect {
+            redis.set("x", "a", px: -1)
+          }.to raise_error("ERR invalid expire time in set")
+        end
+      end
+
+      context "when the ttl is missing" do
+        it "returns an error" do
+          expect {
+            redis.call("set", "x", "a", "ex")
+          }.to raise_error("ERR syntax error")
+
+          expect {
+            redis.call("set", "x", "a", "px")
+          }.to raise_error("ERR syntax error")
+        end
+      end
+
+      context "if both ex and px are specified" do
+        it "responds with a syntax error" do
+          expect { redis.set("x", "y", ex: 1, px: 1000) }
+            .to raise_error("ERR syntax error")
+        end
+      end
+    end
+
+    describe "combinations of arguments" do
+      it "works" do
+        # Can use ex and nx together
+        redis.call("set", "key", "val", "ex", 10, "nx")
+        expect(redis.ttl("key")).to be_between(0, 10)
+
+        # Can use ex and xx together
+        redis.call("set", "key", "val", "ex", 10, "xx")
+        expect(redis.ttl("key")).to be_between(0, 10)
+
+        # For an existing key, nx prevents the value changing but not the ttl
+        redis.call("set", "key", "xyz", "px", 20_000, "nx")
+        expect(redis.get("key")).to eql("val") # value does not change
+        expect(redis.ttl("key")).to be_between(10, 20)
+
+        # For an existing key with xx, both the value and the ttl change
+        redis.call("set", "key", "val", "px", 30_000, "xx")
+        expect(redis.ttl("key")).to be_between(20, 30)
+
+        # The order of the arguments does not matter
+        redis.call("set", "key", "xyz", "nx", "px", 40_000)
+        expect(redis.get("key")).to eql("val") # value does not change
+        expect(redis.ttl("key")).to be_between(30, 40)
+      end
+    end
+
+    it "encodes numeric strings as integers" do
+      redis.set("x", "a")
+      expect(redis.object("encoding", "x")).to eql(
+        using_real_redis? ? "embstr" : "byte_string"
+      )
+      redis.del("x")
+
+      redis.set("x", "-1")
+      expect(redis.object("encoding", "x")).to eql("int")
+      redis.set("x", "0")
+      expect(redis.object("encoding", "x")).to eql("int")
+      redis.set("x", "1")
+      expect(redis.object("encoding", "x")).to eql("int")
     end
 
     it "supports binary data in the key and the value" do
@@ -102,6 +213,11 @@ RSpec.describe "Strings commands", include_connection: true do
       #   https://stackoverflow.com/a/3886015/369171
       expect(redis.set("\xe2\x28\xa1", "\xe2\x28\xa1")).to eql("OK")
       expect(redis.get("\xe2\x28\xa1")).to eql("\xe2\x28\xa1")
+    end
+
+    it "permits zero length keys and values" do
+      expect(redis.set("", "")).to eql("OK")
+      expect(redis.get("")).to eql("")
     end
   end
 
