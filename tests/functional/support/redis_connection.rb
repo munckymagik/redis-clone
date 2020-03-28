@@ -31,6 +31,31 @@ RSpec.configure do |rspec|
       puts "XXXX tests were ran against the real Redis"
       puts "XXXX -------------------------------------------------------------"
     end
+  else
+    redis_pid = nil
+    rspec.before(:suite) do
+      redis_pid = Process.spawn('../../target/release/redis-clone')
+      puts "---------------- Spawned #{redis_pid}"
+
+      3.times do |i|
+        begin
+          puts "-------------- Connection attempt #{i}"
+          Redis.new(port: 8080)
+          puts "-------------- Got a connection"
+          break
+        rescue
+          raise if i == 2
+          sleep 0.2
+        end
+      end
+    end
+    rspec.after(:suite) do
+      puts "---------------- Killing #{redis_pid}"
+      Process.kill("TERM", redis_pid)
+      puts "---------------- Waiting on #{redis_pid}"
+      Process.wait(redis_pid)
+      puts "---------------- Done."
+    end
   end
 
 end
