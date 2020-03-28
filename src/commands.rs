@@ -50,6 +50,16 @@ static COMMAND_TABLE: &[RedisCommand] = &[
         arity: -3,
     },
     RedisCommand {
+        name: b"mget",
+        handler: string_type::mget_command,
+        arity: -2,
+    },
+    RedisCommand {
+        name: b"mset",
+        handler: string_type::mset_command,
+        arity: -3,
+    },
+    RedisCommand {
         name: b"del",
         handler: keyspace::del_command,
         arity: -2,
