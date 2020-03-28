@@ -70,7 +70,7 @@ RSpec.describe "Hash commands", include_connection: true do
       end
 
       context "when there is an uneven number of arguments" do
-        it "returns and error" do
+        it "returns an error" do
           expect {
             redis.call("hset", "x", "a", 2, "b")
           }.to raise_error("ERR wrong number of arguments for HMSET")

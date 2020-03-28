@@ -7,7 +7,7 @@ use crate::{
 };
 use byte_string::ByteString;
 use std::{
-    convert::TryInto,
+    convert::{TryFrom, TryInto},
     time::{Duration, Instant},
 };
 
@@ -81,6 +81,50 @@ pub(crate) fn get_command(
         }
         Some(_) => response.add_reply_wrong_type(),
         None => response.add_null_string(),
+    }
+
+    Ok(())
+}
+
+pub(crate) fn mset_command(
+    db: &mut Database,
+    request: &Request,
+    response: &mut Response,
+) -> Result<()> {
+    let arguments = request.arguments();
+
+    if arguments.len() % 2 != 0 {
+        response.add_error("ERR wrong number of arguments for MSET");
+        return Ok(());
+    }
+
+    let pairs = arguments.chunks(2).flat_map(<&[ByteString; 2]>::try_from);
+
+    for [key, value] in pairs {
+        db.insert(key.clone(), value.clone().into());
+    }
+
+    response.add_simple_string("OK");
+
+    Ok(())
+}
+
+pub(crate) fn mget_command(
+    db: &mut Database,
+    request: &Request,
+    response: &mut Response,
+) -> Result<()> {
+    let keys = request.arguments();
+
+    let len: i64 = keys.len().try_into()?;
+    response.add_array_len(len);
+
+    for key in keys {
+        match db.get(key) {
+            Some(RObj::Int(value)) => response.add_bulk_string(value.to_string()),
+            Some(RObj::String(value)) => response.add_bulk_string(value),
+            _ => response.add_null_string(),
+        };
     }
 
     Ok(())

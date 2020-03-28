@@ -3,6 +3,8 @@ RSpec.describe "Strings commands", include_connection: true do
     specify "the arity for each command is correctly specified" do
       expect(redis.command("info", "set").dig(0, 1)).to eql(-3)
       expect(redis.command("info", "get").dig(0, 1)).to eql(2)
+      expect(redis.command("info", "mset").dig(0, 1)).to eql(-3)
+      expect(redis.command("info", "mget").dig(0, 1)).to eql(-2)
       expect(redis.command("info", "incr").dig(0, 1)).to eql(2)
       expect(redis.command("info", "incrby").dig(0, 1)).to eql(3)
       expect(redis.command("info", "decr").dig(0, 1)).to eql(2)
@@ -232,6 +234,76 @@ RSpec.describe "Strings commands", include_connection: true do
       it "returns its value" do
         redis.set("x", "123")
         expect(redis.get("x")).to eql("123")
+      end
+    end
+  end
+
+  describe "MSET" do
+    context "when the key does not already exist" do
+      it "creates one" do
+        expect(redis.mset("x", "y")).to eql("OK")
+        expect(redis.type("x")).to eql("string")
+      end
+    end
+
+    context "when the key already exists" do
+      it "overwrites the value" do
+        redis.set("x", "y")
+        expect(redis.get("x")).to eql("y")
+        redis.mset("x", "yy")
+        expect(redis.get("x")).to eql("yy")
+      end
+    end
+
+    describe "variable arguments" do
+      context "when only new keys are being added" do
+        it "adds the keys" do
+          expect(redis.mset("a", 1, "b", 2)).to eql("OK")
+
+          expect(redis.get("a")).to eql("1")
+          expect(redis.get("b")).to eql("2")
+        end
+      end
+
+      context "when only some new keys are being added and others being updated" do
+        it "adds the new keys and updates the existing" do
+          redis.set("a", 1)
+          expect(redis.mset("a", 2, "b", 2)).to eql("OK")
+
+          expect(redis.get("a")).to eql("2")
+          expect(redis.get("b")).to eql("2")
+        end
+      end
+
+      context "when there is an uneven number of arguments" do
+        it "returns an error" do
+          expect {
+              expect(redis.mset("a", 1, "b")).to eq("OK")
+          }.to raise_error("ERR wrong number of arguments for MSET")
+        end
+      end
+    end
+  end
+
+  describe "MGET" do
+    context "when none of the keys exist" do
+      it "returns an array of nils" do
+        expect(redis.mget("x", "y")).to eql([nil, nil])
+      end
+    end
+
+    context "when the some of the keys already exist" do
+      it "returns values where they are found or nil where they don't exist" do
+        redis.mset("a", "one", "c", "3")
+        expect(redis.mget("a", "b", "c")).to eql(["one", nil, "3"])
+      end
+    end
+
+    context "when any of the keys contains a non-string type value" do
+      it "returns values where they are strings or nil where they are not" do
+        redis.mset("a", "one", "c", "3")
+        redis.rpush("b", %w[1])
+        expect(redis.mget("a", "b", "c")).to eql(["one", nil, "3"])
       end
     end
   end
