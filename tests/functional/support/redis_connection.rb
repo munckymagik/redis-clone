@@ -2,6 +2,10 @@ def using_real_redis?
   ENV.key? 'TEST_REAL_REDIS'
 end
 
+def redis_5_or_older?
+  redis.info("server")["redis_version"].split(".")[0].to_i <= 5
+end
+
 RSpec.shared_context "Redis connection" do
   let(:port) do
     if using_real_redis?
@@ -32,5 +36,4 @@ RSpec.configure do |rspec|
       puts "XXXX -------------------------------------------------------------"
     end
   end
-
 end

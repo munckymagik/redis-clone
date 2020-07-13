@@ -4,7 +4,7 @@ RSpec.describe "Server commands", include_connection: true do
       # Real Redis v5 wrongly report an arity of 0 for COMMAND. This has been
       # fixed for upcoming Redis 6
       # See: https://github.com/antirez/redis/commit/385f6190a3a9f8d2d5775bd058aaa2173dc05c8c
-      using_real_redis? ? 0 : -1
+      using_real_redis? && redis_5_or_older? ? 0 : -1
     end
     specify "the arity for each command is correctly specified" do
       expect(redis.command("info", "command").dig(0, 1)).to eql(command_arity)
