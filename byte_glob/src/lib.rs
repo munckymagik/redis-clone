@@ -1,3 +1,6 @@
+#![forbid(unsafe_code)]
+#![no_std]
+
 //! Port of the stringmatchlen glob style string matching algorithm from Redis.
 //! Works with byte slices rather than strict utf-8 strings, so it can be used
 //! to match binary data.
@@ -34,7 +37,7 @@ macro_rules! handle_asterisk {
 }
 
 #[inline(always)]
-fn byte_range(start: u8, end: u8) -> std::ops::RangeInclusive<u8> {
+fn byte_range(start: u8, end: u8) -> core::ops::RangeInclusive<u8> {
     let mut range = start..=end;
 
     if start > end {
