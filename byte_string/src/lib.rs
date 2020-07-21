@@ -1,3 +1,5 @@
+#![forbid(unsafe_code)]
+
 use std::borrow::Cow;
 
 mod from_bytes;
