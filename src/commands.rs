@@ -7,6 +7,7 @@ mod hash_type;
 mod keyspace;
 mod list_type;
 mod server;
+mod set_type;
 mod string_type;
 
 type RedisCommandProc = fn(db: &mut Database, req: &Request, resp: &mut Response) -> Result<()>;
@@ -183,6 +184,31 @@ static COMMAND_TABLE: &[RedisCommand] = &[
         name: b"hgetall",
         handler: hash_type::hgetall_command,
         arity: 2,
+    },
+    RedisCommand {
+        name: b"sadd",
+        handler: set_type::sadd_command,
+        arity: -3,
+    },
+    RedisCommand {
+        name: b"scard",
+        handler: set_type::scard_command,
+        arity: 2,
+    },
+    RedisCommand {
+        name: b"smembers",
+        handler: set_type::smembers_command,
+        arity: 2,
+    },
+    RedisCommand {
+        name: b"srem",
+        handler: set_type::srem_command,
+        arity: -3,
+    },
+    RedisCommand {
+        name: b"sscan",
+        handler: set_type::sscan_command,
+        arity: -3,
     },
     RedisCommand {
         name: b"command",

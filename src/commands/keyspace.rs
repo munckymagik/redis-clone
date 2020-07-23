@@ -78,6 +78,7 @@ pub(crate) fn type_command(
                 RObj::Int(_) | RObj::String(_) => "string",
                 RObj::List(_) => "list",
                 RObj::Hash(_) => "hash",
+                RObj::Set(_) => "set",
             };
 
             response.add_simple_string(type_name);
@@ -124,6 +125,7 @@ pub(crate) fn object_command(
                             RObj::String(_) => "byte_string",
                             RObj::List(_) => "vecdeque",
                             RObj::Hash(_) => "hash_map",
+                            RObj::Set(_) => "hash_set",
                         };
 
                         response.add_bulk_string(type_name);

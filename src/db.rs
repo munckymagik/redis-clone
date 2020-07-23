@@ -1,7 +1,6 @@
 use byte_string::ByteString;
 use std::{
-    collections::HashMap,
-    collections::VecDeque,
+    collections::{HashMap, HashSet, VecDeque},
     iter::{FromIterator, IntoIterator},
     sync::Arc,
     time::Instant,
@@ -103,6 +102,7 @@ pub enum RObj {
     String(ByteString),
     List(VecDeque<ByteString>),
     Hash(HashMap<ByteString, ByteString>),
+    Set(HashSet<ByteString>),
 }
 
 impl From<i64> for RObj {

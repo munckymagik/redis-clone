@@ -105,21 +105,20 @@ RSpec.describe "Keyspace commands", include_connection: true do
     end
 
     context "when the specified key exists" do
-      it "returns 'string' for string types" do
-        redis.set("x", "123")
-        expect(redis.type("x")).to eql("string")
-        redis.incr("x")
-        expect(redis.type("x")).to eql("string")
-      end
+      it "returns the type of value identified by the key" do
+        redis.set("a", "abc")
+        redis.set("b", "123")
+        redis.set("c", 123)
+        redis.rpush("d", 1)
+        redis.hset("e", "y", 1)
+        redis.sadd("f", "y")
 
-      it "returns 'list' for list types" do
-        redis.rpush("x", 1)
-        expect(redis.type("x")).to eql("list")
-      end
-
-      it "returns 'hash' for list types" do
-        redis.hset("x", "y", 1)
-        expect(redis.type("x")).to eql("hash")
+        expect(redis.type("a")).to eql("string")
+        expect(redis.type("b")).to eql("string")
+        expect(redis.type("c")).to eql("string")
+        expect(redis.type("d")).to eql("list")
+        expect(redis.type("e")).to eql("hash")
+        expect(redis.type("f")).to eql("set")
       end
     end
   end
