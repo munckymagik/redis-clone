@@ -43,6 +43,7 @@ RSpec.describe "List commands", include_connection: true do
         .to raise_error(expected_error)
       expect { redis.lrem("x", 1, "y") }
         .to raise_error(expected_error)
+      expect(redis.exists("x")).to be(true)
     end
   end
 
@@ -445,6 +446,12 @@ RSpec.describe "List commands", include_connection: true do
         expect(redis.lrange("mylist", 0, -1)).to eql(%w[foo bar foobar foobared zap test foo])
         expect(redis.lrem("mylist", -2, "foo")).to eql(2)
         expect(redis.lrange("mylist", 0, -1)).to eql(%w[bar foobar foobared zap test])
+      end
+
+      specify "removing all values" do
+        redis.rpush("mylist", %w[foo])
+        expect(redis.lrem("mylist", 1, "foo")).to eql(1)
+        expect(redis.exists("mylist")).to be(false)
       end
     end
   end

@@ -120,9 +120,13 @@ impl From<ByteString> for RObj {
     }
 }
 
+pub fn new_list_from(other: impl IntoIterator<Item = ByteString>) -> VecDeque<ByteString> {
+    VecDeque::from_iter(other)
+}
+
 impl RObj {
     pub fn new_list_from(other: impl IntoIterator<Item = ByteString>) -> Self {
-        RObj::List(VecDeque::from_iter(other))
+        RObj::List(new_list_from(other))
     }
 }
 

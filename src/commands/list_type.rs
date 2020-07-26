@@ -1,5 +1,5 @@
 use crate::{
-    db::{Database, RObj},
+    db::{self, Database, RObj},
     errors::Result,
     request::Request,
     response::Response,
@@ -315,7 +315,7 @@ pub(crate) fn lrem_command(
 ) -> Result<()> {
     let key = request.arg(0)?;
 
-    match db.remove(key) {
+    match db.get(key) {
         Some(RObj::List(list)) => {
             let mut to_remove: i64 = parse_arg_or_reply_with_err!(1, request, response);
             let obj = request.arg(2)?;
@@ -348,7 +348,13 @@ pub(crate) fn lrem_command(
                 Box::new(filtered.iter().cloned())
             };
 
-            db.insert(key.to_owned(), RObj::new_list_from(result_iter.cloned()));
+            let result = db::new_list_from(result_iter.cloned());
+            if !result.is_empty() {
+                db.insert(key.to_owned(), RObj::List(result));
+            } else {
+                db.remove(key);
+            }
+
             response.add_integer(removed);
         }
         Some(_) => response.add_reply_wrong_type(),
