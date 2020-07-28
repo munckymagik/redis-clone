@@ -110,4 +110,38 @@ RSpec.describe "Set commands", include_connection: true do
       end
     end
   end
+
+  describe "SSCAN" do
+    context "when the key does not exist" do
+      it "returns zero and an empty array" do
+        expect(redis.sscan("x", 0)).to eq(["0", []])
+      end
+    end
+
+    context "when the key does exist" do
+      def fill_and_scan(values)
+        redis.sadd("x", values)
+
+        values = []
+        cursor = 0
+
+        loop do
+          resp = redis.sscan("x", cursor)
+          cursor = resp.first
+          values.push(*resp.last)
+          break if cursor == "0"
+        end
+
+        values.sort.uniq
+      end
+
+      it "returns all values in one or more batches" do
+        values = ("a".."z").to_a + (1..100).map(&:to_s)
+        result = fill_and_scan(values)
+
+        expect(result.size).to eql(values.size)
+        expect(result).to eql(values.sort)
+      end
+    end
+  end
 end
