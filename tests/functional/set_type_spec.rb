@@ -119,28 +119,34 @@ RSpec.describe "Set commands", include_connection: true do
     end
 
     context "when the key does exist" do
-      def fill_and_scan(values)
+      def fill_and_scan(values, max_iters = 100)
         redis.sadd("x", values)
 
         values = []
         cursor = 0
+        iters = 0
 
         loop do
+          iters += 1
+          raise "exceeded max iterations" if iters > max_iters
+
           resp = redis.sscan("x", cursor)
           cursor = resp.first
+          puts "Cursor: #{cursor}"
           values.push(*resp.last)
           break if cursor == "0"
         end
 
-        values.sort.uniq
+        [values.sort.uniq, iters]
       end
 
-      it "returns all values in one or more batches" do
+      fit "returns all values in one or more batches" do
         values = ("a".."z").to_a + (1..100).map(&:to_s)
-        result = fill_and_scan(values)
+        result, iters = fill_and_scan(values)
 
         expect(result.size).to eql(values.size)
         expect(result).to eql(values.sort)
+        expect(iters).to be > 1
       end
     end
   end

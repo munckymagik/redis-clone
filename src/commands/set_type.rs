@@ -115,6 +115,32 @@ pub(crate) fn sscan_command(
     request: &Request,
     response: &mut Response,
 ) -> Result<()> {
-    response.add_error("ERR not implemented yet");
+    let key = request.arg(0)?;
+
+    match db.get(key) {
+        Some(RObj::Set(ref set)) => {
+            let cursor: usize = parse_arg_or_reply_with_err!(1, request, response);
+
+            let keys: Vec<&ByteString> = set.iter().skip(cursor).take(10).collect();
+            let mut new_cursor = cursor.checked_add(keys.len()).unwrap_or(0);
+            if new_cursor >= set.len() {
+                new_cursor = 0;
+            }
+
+            response.add_array_len(2);
+            response.add_bulk_string(new_cursor.to_string());
+            response.add_array_len(keys.len().try_into()?);
+            for item in keys {
+                response.add_bulk_string(item);
+            }
+        }
+        Some(_) => response.add_reply_wrong_type(),
+        None => {
+            response.add_array_len(2);
+            response.add_bulk_string("0");
+            response.add_array_len(0);
+        }
+    }
+
     Ok(())
 }
