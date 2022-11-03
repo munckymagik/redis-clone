@@ -130,7 +130,7 @@ mod conversions_to {
 
     #[test]
     fn test_byte_string_into_vec() {
-        fn assert_vec(_: Vec<u8>) {};
+        fn assert_vec(_: Vec<u8>) {}
 
         let a = ByteString::from(b"hello");
         assert_vec(a.into_vec());
@@ -138,7 +138,7 @@ mod conversions_to {
 
     #[test]
     fn test_byte_string_as_ref_u8() {
-        fn assert_as_ref(_: impl AsRef<[u8]>) {};
+        fn assert_as_ref(_: impl AsRef<[u8]>) {}
 
         let a = ByteString::from(b"hello");
         assert_as_ref(&a);

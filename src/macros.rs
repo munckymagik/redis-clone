@@ -7,7 +7,7 @@ macro_rules! parse_or_reply_with_err {
                 $resp.add_reply_not_a_number();
                 return Ok(());
             }
-        };
+        }
     };
 }
 
