@@ -2,7 +2,7 @@ use std::error::Error as StdError;
 use std::fmt::{self, Display};
 use std::ops::Neg;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct ParseIntError;
 
 impl StdError for ParseIntError {}
@@ -50,7 +50,7 @@ pub(crate) fn from_bytes<T: Number>(string: &[u8]) -> Result<T, ParseIntError> {
     let (digits, sign_factor): (_, T) = match string[0] {
         b'+' => (&string[1..], T::from(1)),
         b'-' => (&string[1..], T::from(1).neg()),
-        _ => (&string[..], T::from(1)),
+        _ => (string, T::from(1)),
     };
 
     let mut result: T = T::from(0);

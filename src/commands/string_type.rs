@@ -167,7 +167,7 @@ pub(crate) fn decrby_command(
 ) -> Result<()> {
     let arg = request.arg(1)?;
 
-    if let Some(increment) = parse_i64_or_reply_with_error(response, &arg) {
+    if let Some(increment) = parse_i64_or_reply_with_error(response, arg) {
         return general_incr(db, request, response, -increment);
     }
 

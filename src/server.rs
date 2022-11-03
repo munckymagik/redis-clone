@@ -134,7 +134,7 @@ async fn handle_client(mut stream: TcpStream, mut api: Sender<Message>) -> Resul
                 error!("{}", msg);
                 let mut response = Response::new();
                 response.add_error(&msg);
-                out_stream.write_all(&response.as_bytes()).await?;
+                out_stream.write_all(response.as_bytes()).await?;
                 break;
             }
         };
@@ -153,7 +153,7 @@ async fn handle_client(mut stream: TcpStream, mut api: Sender<Message>) -> Resul
 
         match response_receiver.next().await {
             Some(response) => {
-                out_stream.write_all(&response.as_bytes()).await?;
+                out_stream.write_all(response.as_bytes()).await?;
             }
             None => {
                 error!("Api sender gone");

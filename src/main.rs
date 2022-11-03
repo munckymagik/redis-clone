@@ -1,6 +1,5 @@
 use env_logger::{self, Env};
 use log::{log_enabled, warn};
-use redis_clone;
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
