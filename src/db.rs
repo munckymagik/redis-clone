@@ -97,7 +97,7 @@ impl Database {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum RObj {
     Int(i64),
     String(ByteString),

@@ -5,7 +5,6 @@ use crate::{
     response::Response,
     response_ext::ResponseExt,
 };
-use byte_glob;
 use std::{
     convert::TryInto,
     time::{Duration, Instant},

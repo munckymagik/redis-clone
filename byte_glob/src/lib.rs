@@ -141,10 +141,7 @@ macro_rules! handle_literal {
     }};
 }
 
-pub fn glob(pattern: &[u8], string: &[u8]) -> bool {
-    let mut pattern = &pattern[..];
-    let mut string = &string[..];
-
+pub fn glob(mut pattern: &[u8], mut string: &[u8]) -> bool {
     while !pattern.is_empty() && !string.is_empty() {
         match pattern[0] {
             b'*' => handle_asterisk!(pattern, string),
@@ -165,7 +162,7 @@ pub fn glob(pattern: &[u8], string: &[u8]) -> bool {
         if string.is_empty() {
             // If the remaining pattern chars are asterisks we can skip them,
             // so there's still a chance of a match
-            while let Some(b'*') = pattern.get(0) {
+            while let Some(b'*') = pattern.first() {
                 pattern = &pattern[1..]
             }
 

@@ -6,7 +6,7 @@ mod from_bytes;
 use from_bytes::from_bytes;
 pub use from_bytes::{Number, ParseIntError};
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct ByteStr<'inner> {
     bytes: &'inner [u8],
 }

@@ -180,7 +180,7 @@ pub(crate) fn lindex_command(
             };
 
             if let Some(value) = list.get(index) {
-                response.add_bulk_string(&value);
+                response.add_bulk_string(value);
             } else {
                 response.add_null_string();
             }

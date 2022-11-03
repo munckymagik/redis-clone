@@ -12,7 +12,7 @@ pub async fn parse(stream: &mut (impl AsyncBufRead + Unpin + Send)) -> Result<Re
     Request::try_from(query)
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Request {
     query: Vec<ByteString>,
 }

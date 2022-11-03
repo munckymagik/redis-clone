@@ -33,7 +33,7 @@ pub(crate) fn command_command(_: &mut Database, req: &Request, reply: &mut Respo
             reply.add_array_len(COMMAND_TABLE.len().try_into()?);
 
             for cmd in COMMAND_TABLE {
-                command_reply(reply, &cmd);
+                command_reply(reply, cmd);
             }
         }
     }
