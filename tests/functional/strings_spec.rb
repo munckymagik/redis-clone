@@ -52,7 +52,7 @@ RSpec.describe "Strings commands", include_connection: true do
 
       it "does not set the key if XX is specified" do
         expect(redis.set("x", "abc", xx: true)).to be(false)
-        expect(redis.exists("x")).to be(false)
+        expect(redis.exists?("x")).to be(false)
       end
     end
 

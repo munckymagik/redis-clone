@@ -31,7 +31,7 @@ RSpec.describe "Hash commands", include_connection: true do
   describe "HSET" do
     context "when the db key does not already exist" do
       it "creates one" do
-        expect(redis.hset("x", "y", "z")).to be(true)
+        expect(redis.hset("x", "y", "z")).to eq(1)
         expect(redis.type("x")).to eql("hash")
       end
     end
