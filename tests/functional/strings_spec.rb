@@ -52,7 +52,7 @@ RSpec.describe "Strings commands", include_connection: true do
 
       it "does not set the key if XX is specified" do
         expect(redis.set("x", "abc", xx: true)).to be(false)
-        expect(redis.exists("x")).to be(false)
+        expect(redis.exists?("x")).to be(false)
       end
     end
 
@@ -214,7 +214,9 @@ RSpec.describe "Strings commands", include_connection: true do
       # Invalid UTF-8 sequence sourced from:
       #   https://stackoverflow.com/a/3886015/369171
       expect(redis.set("\xe2\x28\xa1", "\xe2\x28\xa1")).to eql("OK")
-      expect(redis.get("\xe2\x28\xa1")).to eql("\xe2\x28\xa1")
+      expected = "\xe2\x28\xa1"
+      result = redis.get("\xe2\x28\xa1")
+      expect(result.unpack('C*')).to eql(expected.unpack('C*'))
     end
 
     it "permits zero length keys and values" do

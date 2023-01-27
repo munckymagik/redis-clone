@@ -35,7 +35,7 @@ useful to seed new services that could be driven using Redis-style commands usin
   * The API/functional tests can be run against _real_ Redis to cross validate
   * We can use `redis-cli` to connect to and interact with the clone
   * `redis-benchmark` can be used to compare performance of the clone with the real one
-* Ruby 2.* - for the functional test suite
+* Ruby 3.* - for the functional test suite
 
 ## Running
 

@@ -63,14 +63,14 @@ RSpec.describe "Keyspace commands", include_connection: true do
       it "removes the key and returns 1" do
         redis.set("x", "123")
         expect(redis.del("x")).to eql(1)
-        expect(redis.exists("x")).to be(false)
+        expect(redis.exists?("x")).to be(false)
       end
     end
 
     context "when the specified key does not exist" do
       it "removes the key and returns 0" do
         expect(redis.del("does-not-exist")).to eql(0)
-        expect(redis.exists("does-not-exist")).to be(false)
+        expect(redis.exists?("does-not-exist")).to be(false)
       end
     end
 
@@ -206,11 +206,11 @@ RSpec.describe "Keyspace commands", include_connection: true do
       it "deletes the key" do
         redis.set("x", "abc")
         expect(redis.expire("x", 0)).to be(true)
-        expect(redis.exists("x")).to be(false)
+        expect(redis.exists?("x")).to be(false)
 
         redis.set("x", "abc")
         expect(redis.expire("x", -1)).to be(true)
-        expect(redis.exists("x")).to be(false)
+        expect(redis.exists?("x")).to be(false)
       end
     end
 
@@ -220,14 +220,14 @@ RSpec.describe "Keyspace commands", include_connection: true do
         expect(redis.expire("x", 1)).to be(true)
         sleep(1.5)
         expect(redis.expire("x", 1)).to be(false)
-        expect(redis.exists("x")).to be(false)
+        expect(redis.exists?("x")).to be(false)
       end
     end
 
     context "when ttl is not an integer" do
       it "replies with an error" do
         redis.set("x", "123")
-        expect { redis.expire("x", "abc") }
+        expect { redis.call("expire", "x", "abc") }
           .to raise_error(
             "ERR value is not an integer or out of range"
           )
@@ -257,7 +257,7 @@ RSpec.describe "Keyspace commands", include_connection: true do
         expect(redis.expire("x", 1)).to be(true)
         sleep(1.5)
         expect(redis.persist("x")).to be(false)
-        expect(redis.exists("x")).to be(false)
+        expect(redis.exists?("x")).to be(false)
       end
     end
   end
@@ -275,7 +275,7 @@ RSpec.describe "Keyspace commands", include_connection: true do
         redis.expire("x", 1)
         sleep(1.5)
         expect(redis.ttl("x")).to eql(-2)
-        expect(redis.exists("x")).to be(false)
+        expect(redis.exists?("x")).to be(false)
       end
     end
 

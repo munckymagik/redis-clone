@@ -79,12 +79,12 @@ RSpec.describe "List commands", include_connection: true do
     context "when the key does not already exist" do
       specify "LPUSH creates a new key as a list and adds the new element" do
         expect(redis.lpush("x", "abc")).to eql(1)
-        expect(redis.exists("x")).to be(true)
+        expect(redis.exists?("x")).to be(true)
       end
 
       specify "RPUSH creates a new key as a list and adds the new element" do
         expect(redis.rpush("x", "abc")).to eql(1)
-        expect(redis.exists("x")).to be(true)
+        expect(redis.exists?("x")).to be(true)
       end
     end
 
@@ -191,7 +191,7 @@ RSpec.describe "List commands", include_connection: true do
     context "when the key does not already exist" do
       it "is a no-op and returns 0" do
         expect(redis.linsert("x", "BEFORE", "1", "0")).to eql(0)
-        expect(redis.exists("x")).to be(false)
+        expect(redis.exists?("x")).to be(false)
       end
     end
 
@@ -282,7 +282,7 @@ RSpec.describe "List commands", include_connection: true do
       it "returns an error" do
         redis.rpush("x", %w[1])
 
-        expect { redis.lindex("x", "bang") }
+        expect { redis.call("lindex", "x", "bang") }
           .to raise_error("ERR value is not an integer or out of range")
       end
     end
@@ -320,7 +320,7 @@ RSpec.describe "List commands", include_connection: true do
       it "returns an error" do
         redis.rpush("x", %w[1])
 
-        expect { redis.lset("x", "bang", "one") }
+        expect { redis.call("lset", "x", "bang", "one") }
           .to raise_error("ERR value is not an integer or out of range")
       end
     end
@@ -394,21 +394,21 @@ RSpec.describe "List commands", include_connection: true do
 
       specify "when start > end it removes the key" do
         expect(trim_list(0, -4)).to eql(%w[])
-        expect(redis.exists("mylist")).to be(false)
+        expect(redis.exists?("mylist")).to be(false)
         expect(trim_list(4, 3)).to eql(%w[])
-        expect(redis.exists("mylist")).to be(false)
+        expect(redis.exists?("mylist")).to be(false)
         expect(trim_list(2, 1)).to eql(%w[])
-        expect(redis.exists("mylist")).to be(false)
+        expect(redis.exists?("mylist")).to be(false)
       end
 
       specify "when both are > len it removes the key" do
         expect(trim_list(3, 3)).to eql(%w[])
-        expect(redis.exists("mylist")).to be(false)
+        expect(redis.exists?("mylist")).to be(false)
       end
 
       specify "when both are < 0 it removes the key" do
         expect(trim_list(-4, -4)).to eql(%w[])
-        expect(redis.exists("mylist")).to be(false)
+        expect(redis.exists?("mylist")).to be(false)
       end
     end
   end
