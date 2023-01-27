@@ -15,5 +15,5 @@ byte_glob = { path = "./byte_glob" }
 byte_string = { path = "./byte_string" }
 log = "0.4.17"
 env_logger = "0.10.0"
-tokio = { version = "0.2.6", features = ["full"] }
+tokio = { version = "0.2.25", features = ["full"] }
 futures = "0.3.1"
