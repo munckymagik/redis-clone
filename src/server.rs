@@ -16,7 +16,6 @@ use tokio::{
     io::{AsyncWriteExt, BufReader},
     net::{TcpListener, TcpStream, ToSocketAddrs},
     runtime::Runtime,
-    stream::StreamExt,
     sync::mpsc::{self, Sender},
 };
 
@@ -41,7 +40,7 @@ fn start_api(mut db: Database) -> Sender<Message> {
     let (sender, mut receiver) = mpsc::channel::<Message>(512);
 
     tokio::spawn(async move {
-        while let Some(message) = receiver.next().await {
+        while let Some(message) = receiver.recv().await {
             let request = message.request;
             let mut response = Response::new();
 
@@ -96,12 +95,11 @@ fn api_handle_command(
 }
 
 async fn start_network(api: Sender<Message>, address: impl ToSocketAddrs + Debug) -> Result<()> {
-    let mut listener = TcpListener::bind(&address).await?;
+    let listener = TcpListener::bind(&address).await?;
 
     // accept connections and process them serially
     info!("Listening at {:?}", address);
-    while let Some(stream) = listener.next().await {
-        let stream = stream?;
+    while let Ok((stream, _)) = listener.accept().await {
         let api = api.clone();
         tokio::spawn(async move {
             if let Err(ref err) = handle_client(stream, api).await {
@@ -150,7 +148,7 @@ async fn handle_client(mut stream: TcpStream, api: Sender<Message>) -> Result<()
             return Err(msg.into());
         }
 
-        match response_receiver.next().await {
+        match response_receiver.recv().await {
             Some(response) => {
                 out_stream.write_all(response.as_bytes()).await?;
             }
