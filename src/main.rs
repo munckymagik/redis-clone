@@ -7,7 +7,7 @@ const REDIS_CLONE_VERSION: &str = env!("CARGO_PKG_VERSION");
 const BITS: usize = std::mem::size_of::<usize>() * 8;
 
 fn main() -> Result<()> {
-    env_logger::from_env(Env::default().default_filter_or("info")).init();
+    env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
 
     let address = ("127.0.0.1", 8080);
 
