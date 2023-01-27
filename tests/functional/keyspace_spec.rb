@@ -227,7 +227,7 @@ RSpec.describe "Keyspace commands", include_connection: true do
     context "when ttl is not an integer" do
       it "replies with an error" do
         redis.set("x", "123")
-        expect { redis.expire("x", "abc") }
+        expect { redis.call("expire", "x", "abc") }
           .to raise_error(
             "ERR value is not an integer or out of range"
           )

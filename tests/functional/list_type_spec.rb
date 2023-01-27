@@ -282,7 +282,7 @@ RSpec.describe "List commands", include_connection: true do
       it "returns an error" do
         redis.rpush("x", %w[1])
 
-        expect { redis.lindex("x", "bang") }
+        expect { redis.call("lindex", "x", "bang") }
           .to raise_error("ERR value is not an integer or out of range")
       end
     end
@@ -320,7 +320,7 @@ RSpec.describe "List commands", include_connection: true do
       it "returns an error" do
         redis.rpush("x", %w[1])
 
-        expect { redis.lset("x", "bang", "one") }
+        expect { redis.call("lset", "x", "bang", "one") }
           .to raise_error("ERR value is not an integer or out of range")
       end
     end

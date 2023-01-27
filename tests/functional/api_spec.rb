@@ -28,7 +28,7 @@ RSpec.describe "General API behaviour", include_connection: true do
       it "return an error string" do
         expect { redis.xyz }
           .to raise_error(
-            "ERR unknown command `xyz`, with args beginning with:"
+            "ERR unknown command `xyz`, with args beginning with: "
           )
       end
     end
